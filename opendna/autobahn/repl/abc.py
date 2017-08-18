@@ -21,19 +21,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 ################################################################################
-from asyncio import AbstractEventLoop
-from typing import Callable, Union
 
-from autobahn.asyncio import ApplicationSession
+__author__ = 'Adam Jorgensen <adam.jorgensen.za@gmail.com>'
 
 
 class AbstractCall(object):
-    def __init__(self, loop: AbstractEventLoop,
-                 application_session: ApplicationSession,
-                 procedure: str, on_progress: Callable=None,
-                 timeout: Union[int, float]=None):
-        raise NotImplementedError
-
     def __call__(self, *args, **kwargs):
         raise NotImplementedError
 
@@ -51,6 +43,17 @@ class AbstractCall(object):
 
     @property
     def timeout(self):
+        raise NotImplementedError
+
+
+class AbstractCallManager(object):
+    def __call__(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def __getitem__(self, item):
+        raise NotImplementedError
+
+    def __getattr__(self, item):
         raise NotImplementedError
 
 

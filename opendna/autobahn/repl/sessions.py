@@ -1,24 +1,61 @@
+################################################################################
+# MIT License
+#
+# Copyright (c) 2017 OpenDNA Ltd.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+################################################################################
 import asyncio
 from asyncio import AbstractEventLoop
 from functools import partial
+from typing import Type
 
 from autobahn.asyncio.wamp import ApplicationSession, ApplicationRunner
 from autobahn.wamp import ComponentConfig
 
+from opendna.autobahn.repl.abc import (
+    AbstractSession,
+    AbstractSessionManager
+)
+from opendna.autobahn.repl.rpc import Call, CallManager
+from opendna.autobahn.repl.utils import generate_name
 
-class Session(object):
+__author__ = 'Adam Jorgensen <adam.jorgensen.za@gmail.com>'
+
+
+class Session(AbstractSession):
     """
     The Session implements a synchronous interface interacting with an
     enclosed ApplicationSession instance
     """
     def __init__(self, loop: AbstractEventLoop, name: str,
                  application_session: ApplicationSession):
+        assert isinstance(loop, AbstractEventLoop)
+        assert isinstance(application_session, ApplicationSession)
         self.__loop = loop
         self.__name = name
         self.__application_session = application_session
+        self.__call_manager = CallManager
 
+    @property
     def call(self):
-        raise NotImplementedError
+        return self.__call_manager
 
     def register(self):
         raise NotImplementedError
@@ -30,20 +67,22 @@ class Session(object):
         raise NotImplementedError
 
 
-class SessionManager(object):
+class SessionManager(AbstractSessionManager):
     """
     The SessionManager implements an interface for creating and interacting
     with asyncio WAMP sessions. Custom SessionManager implementations should
     inherit from this class
     """
-    def __init__(self, loop: AbstractEventLoop, session_class: type):
+    def __init__(self, loop: AbstractEventLoop,
+                 session_class: Type[AbstractSession]):
         """
         Constructor for WAMP Session Manager class
 
         :param loop: An asyncio event loop instance
         :param session_class:
         """
-        assert issubclass(session_class, Session)
+        assert isinstance(loop, AbstractEventLoop)
+        assert issubclass(session_class, AbstractSession)
         self.__loop = loop
         self.__sessions = {}
         self.__session_name__sessions = {}
@@ -54,9 +93,7 @@ class SessionManager(object):
         return self.__loop
 
     def __factory(self, config: ComponentConfig, name: str):
-        if name is None:
-            # TODO: Generate fake-name
-            pass
+        name = generate_name(name)
         # TODO: ApplicationSession class should be customisable using command-line arguments or environment variables
         application_session = ApplicationSession(config)
         session = self.__session_class(self.__loop, name, application_session)
@@ -79,8 +116,7 @@ class SessionManager(object):
         :param item:
         :return:
         """
-        if item in self.__session_name__sessions:
-            item = self.__session_name__sessions[item]
+        item = self.__session_name__sessions.get(item, item)
         return self.__sessions[item]
 
     def __getattr__(self, item: str):
