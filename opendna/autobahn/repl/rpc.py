@@ -22,81 +22,153 @@
 # SOFTWARE.
 ################################################################################
 import asyncio
-from asyncio import AbstractEventLoop
-from typing import Callable, Union
+from copy import deepcopy
+from typing import Callable, Union, Any, Dict, Iterable
 
-from autobahn.asyncio import ApplicationSession
+import txaio
 from autobahn.wamp import CallOptions
 
-from opendna.autobahn.repl.abc import AbstractCall, AbstractCallManager
+from opendna.autobahn.repl.abc import (
+    AbstractCallInvocation,
+    AbstractCall,
+    AbstractCallManager,
+    AbstractSession)
 from opendna.autobahn.repl.utils import generate_name
 
 __author__ = 'Adam Jorgensen <adam.jorgensen.za@gmail.com>'
 
 
+class Keep(object):
+    pass
+Keep = Keep()
+
+
+class CallInvocation(AbstractCallInvocation):
+
+    def __init__(self,
+                 call: AbstractCall,
+                 args: Iterable,
+                 kwargs: Dict[str, Any]):
+        assert isinstance(call, AbstractCall)
+        loop = call.call_manager.session.session_manager.loop
+        self.__call = call
+        self.__args = args
+        self.__kwargs = kwargs
+        self.__future = asyncio.ensure_future(self.__invoke(), loop=loop)
+        self.__progress = []
+        self.__result = None
+        self.__exception = None
+
+    @property
+    def result(self):
+        return self.__result
+
+    @property
+    def progress(self):
+        return self.__progress
+
+    @property
+    def exception(self):
+        return self.__exception
+
+    def __default_on_progress(self, value):
+        self.__progress.append(value)
+
+    async def __invoke(self):
+        try:
+            options = CallOptions(
+                on_progress=(
+                    self.__call.on_progress if callable(self.__call.on_progress)
+                    else self.__default_on_progress
+                ),
+                timeout=self.__call.timeout
+            )
+            session = self.__call.call_manager.session.application_session
+            self.__result = await session.call(
+                self.__call.procedure,
+                *self.__args,
+                options=options,
+                **self.__kwargs
+            )
+        except Exception as e:
+            self.__exception = e
+
+    def __call__(self, *new_args, **new_kwargs) -> AbstractCallInvocation:
+        """
+
+        :param new_args:
+        :param new_kwargs:
+        :return:
+        """
+        args = deepcopy(self.__args)
+        args = [
+            arg if new_arg == Keep else new_arg
+            for arg, new_arg in zip(args, new_args)
+        ]
+        kwargs = deepcopy(self.__kwargs)
+        kwargs.update(new_kwargs)
+        return self.__call(*args, **kwargs)
+
+
 class Call(AbstractCall):
-    def __init__(self, loop: AbstractEventLoop,
-                 application_session: ApplicationSession,
+    def __init__(self, manager: AbstractCallManager,
                  procedure: str, on_progress: Callable=None,
-                 timeout: Union[int, float]=None):
-        assert isinstance(loop, AbstractEventLoop)
-        assert isinstance(application_session, ApplicationSession)
-        self.__loop = loop
-        self.__application_session = application_session
+                 timeout: Union[int, float, None]=None):
+        assert isinstance(manager, AbstractCallManager)
+        self.__manager = manager
         self.__procedure = procedure
         self.__on_progress = on_progress
         self.__timeout = timeout
-        self.__results = {}
-        self.__exceptions = {}
-        self.__progressive_results = {}
+        self.__invocation_name__invocations = {}
+        self.__invocations = {}
 
     @property
-    def application_session(self):
-        return self.__application_session
+    def call_manager(self) -> AbstractCallManager:
+        return self.__manager
 
     @property
-    def procedure(self):
+    def procedure(self) -> str:
         return self.__procedure
 
     @property
-    def on_progress(self):
+    def on_progress(self) -> Callable:
         return self.__on_progress
 
     @property
-    def timeout(self):
+    def timeout(self) -> Union[int, float, None]:
         return self.__timeout
 
-    def __call__(self, *args, **kwargs) -> int:
-        async def call():
-            on_progress = self.__on_progress
-            if not callable(on_progress):
-                def on_progress(value):
-                    progress = self.__progressive_results.setdefault(call_id, [])
-                    progress.append(value)
-            try:
-                result = await self.__application_session.call(
-                    self.__procedure,
-                    *args,
-                    options=CallOptions(on_progress, self.__timeout),
-                    **kwargs
-                )
-                results = self.__results.setdefault(call_id, [])
-                results.append(result)
-            except Exception as e:
-                self.__exceptions[call_id] = e
+    def __call__(self, *args, **kwargs) -> AbstractCallInvocation:
+        name = generate_name()
+        while name in self.__invocations:
+            name = generate_name()
+        # TODO: Allow custom CallInvocation class
+        invocation = CallInvocation(call=self, args=args, kwargs=kwargs)
+        invocation_id = id(invocation)
+        self.__invocations[invocation_id] = invocation
+        self.__invocation_name__invocations[name] = invocation_id
+        return invocation
 
-        call_id = id(call)
-        asyncio.ensure_future(call(), loop=self.__loop)
-        return call_id
+    def __getitem__(self, item):
+        item = self.__invocation_name__invocations.get(item, item)
+        return self.__invocations[item]
+
+    def __getattr__(self, item):
+        return self[item]
 
 
 class CallManager(AbstractCallManager):
-    def __init__(self, loop: AbstractEventLoop,
-                 application_session: ApplicationSession):
-        self.__loop = loop
-        self.__application_session = application_session
+    logger = txaio.make_logger()
+
+    def __init__(self, session: AbstractSession):
+        assert isinstance(session, AbstractSession)
+        self.__session = session
         self.__call_name__calls = {}
         self.__calls = {}
+
+    @property
+    def session(self) -> AbstractSession:
+        return self.__session
 
     def __call__(self,
                  procedure: str,
@@ -113,11 +185,16 @@ class CallManager(AbstractCallManager):
         :param timeout:
         :return:
         """
-        name = generate_name(name)
-        # TODO: Call class custom
+        while name is None or name in self.__call_name__calls:
+            name = generate_name(name)
+        self.logger.info(
+            'Generating call to {procedure} with name {name}',
+            procedure=procedure, name=name
+        )
+        # TODO: Allow custom Call class
         call = Call(
-            self.__loop, self.__application_session, procedure, on_progress,
-            timeout
+            manager=self, procedure=procedure, on_progress=on_progress,
+            timeout=timeout
         )
         call_id = id(call)
         self.__calls[call_id] = call

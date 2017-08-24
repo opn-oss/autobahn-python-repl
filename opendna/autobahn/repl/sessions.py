@@ -22,10 +22,11 @@
 # SOFTWARE.
 ################################################################################
 import asyncio
-from asyncio import AbstractEventLoop
+from asyncio import AbstractEventLoop, Future
 from functools import partial
 from typing import Type
 
+import txaio
 from autobahn.asyncio.wamp import ApplicationSession, ApplicationRunner
 from autobahn.wamp import ComponentConfig
 
@@ -33,7 +34,7 @@ from opendna.autobahn.repl.abc import (
     AbstractSession,
     AbstractSessionManager
 )
-from opendna.autobahn.repl.rpc import Call, CallManager
+from opendna.autobahn.repl.rpc import CallManager
 from opendna.autobahn.repl.utils import generate_name
 
 __author__ = 'Adam Jorgensen <adam.jorgensen.za@gmail.com>'
@@ -44,14 +45,21 @@ class Session(AbstractSession):
     The Session implements a synchronous interface interacting with an
     enclosed ApplicationSession instance
     """
-    def __init__(self, loop: AbstractEventLoop, name: str,
+    def __init__(self, manager: AbstractSessionManager,
                  application_session: ApplicationSession):
-        assert isinstance(loop, AbstractEventLoop)
+        assert isinstance(manager, AbstractSessionManager)
         assert isinstance(application_session, ApplicationSession)
-        self.__loop = loop
-        self.__name = name
+        self.__manager = manager
         self.__application_session = application_session
-        self.__call_manager = CallManager
+        self.__call_manager = CallManager(self)
+
+    @property
+    def session_manager(self) -> AbstractSessionManager:
+        return self.__manager
+
+    @property
+    def application_session(self) -> ApplicationSession:
+        return self.__application_session
 
     @property
     def call(self):
@@ -73,6 +81,8 @@ class SessionManager(AbstractSessionManager):
     with asyncio WAMP sessions. Custom SessionManager implementations should
     inherit from this class
     """
+    logger = txaio.make_logger()
+
     def __init__(self, loop: AbstractEventLoop,
                  session_class: Type[AbstractSession]):
         """
@@ -93,21 +103,27 @@ class SessionManager(AbstractSessionManager):
         return self.__loop
 
     def __factory(self, config: ComponentConfig, name: str):
-        name = generate_name(name)
         # TODO: ApplicationSession class should be customisable using command-line arguments or environment variables
         application_session = ApplicationSession(config)
-        session = self.__session_class(self.__loop, name, application_session)
+        session = self.__session_class(self, application_session)
         session_id = id(session)
         self.__sessions[session_id] = session
         self.__session_name__sessions[name] = session_id
         return application_session
 
-    def create(self, uri: str, realm: str, name: str=None):
+    def __call__(self, uri: str, realm: str, name: str=None) -> Future:
+        while name is None or name in self.__session_name__sessions:
+            name = generate_name(name)
+        self.logger.info(
+            'Creating new Session named {name} connecting to {realm} at {uri}',
+            name=name, realm=realm, uri=uri
+        )
         runner = ApplicationRunner(uri, realm)
         coro = runner.run(
             partial(self.__factory, name=name),
             start_loop=False
         )
+        # TODO: Find a way to return the session itself?
         return asyncio.ensure_future(coro)
 
     def __getitem__(self, item: str):

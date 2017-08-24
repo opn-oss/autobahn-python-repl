@@ -25,12 +25,34 @@
 __author__ = 'Adam Jorgensen <adam.jorgensen.za@gmail.com>'
 
 
-class AbstractCall(object):
-    def __call__(self, *args, **kwargs):
+class AbstractCallInvocation(object):
+
+    @property
+    def result(self):
         raise NotImplementedError
 
     @property
-    def application_session(self):
+    def progress(self):
+        raise NotImplementedError
+
+    @property
+    def exception(self):
+        raise NotImplementedError
+
+    def __default_on_progress(self, value):
+        raise NotImplementedError
+
+    async def __invoke(self):
+        raise NotImplementedError
+
+    def __call__(self, *args, **kwargs):
+        raise NotImplementedError
+
+
+class AbstractCall(object):
+
+    @property
+    def call_manager(self) -> AbstractCallManager:
         raise NotImplementedError
 
     @property
@@ -45,8 +67,22 @@ class AbstractCall(object):
     def timeout(self):
         raise NotImplementedError
 
+    def __call__(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def __getitem__(self, item):
+        raise NotImplementedError
+
+    def __getattr__(self, item):
+        raise NotImplementedError
+
 
 class AbstractCallManager(object):
+
+    @property
+    def session(self) -> AbstractSession:
+        raise NotImplementedError
+
     def __call__(self, *args, **kwargs):
         raise NotImplementedError
 
@@ -70,8 +106,44 @@ class AbstractSubscribe(object):
 
 
 class AbstractSession(object):
-    pass
+
+    @property
+    def session_manager(self) -> AbstractSessionManager:
+        raise NotImplementedError
+
+    @property
+    def application_session(self):
+        raise NotImplementedError
+
+    @property
+    def call(self):
+        raise NotImplementedError
+
+    @property
+    def register(self):
+        raise NotImplementedError
+
+    @property
+    def publish(self):
+        raise NotImplementedError
+
+    @property
+    def subscribe(self):
+        raise NotImplementedError
 
 
 class AbstractSessionManager(object):
-    pass
+
+    @property
+    def loop(self):
+        raise NotImplementedError
+
+    def __call__(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def __getitem__(self, item):
+        raise NotImplementedError
+
+    def __getattr__(self, item):
+        raise NotImplementedError
+
