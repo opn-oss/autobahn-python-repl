@@ -21,31 +21,100 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 ################################################################################
+from asyncio import AbstractEventLoop
+
+from autobahn.wamp import ComponentConfig
 
 __author__ = 'Adam Jorgensen <adam.jorgensen.za@gmail.com>'
 
 
-class AbstractCallInvocation(object):
+class AbstractSessionManager(object):
 
     @property
-    def result(self):
-        raise NotImplementedError
-
-    @property
-    def progress(self):
-        raise NotImplementedError
-
-    @property
-    def exception(self):
-        raise NotImplementedError
-
-    def __default_on_progress(self, value):
-        raise NotImplementedError
-
-    async def __invoke(self):
+    def loop(self) -> AbstractEventLoop:
         raise NotImplementedError
 
     def __call__(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def __getitem__(self, item):
+        raise NotImplementedError
+
+    def __getattr__(self, item):
+        raise NotImplementedError
+
+
+class AbstractSession(object):
+
+    def __factory(self, config: ComponentConfig):
+        raise NotImplementedError
+
+    @property
+    def session_manager(self) -> AbstractSessionManager:
+        raise NotImplementedError
+
+    @property
+    def uri(self):
+        raise NotImplementedError
+
+    @property
+    def realm(self):
+        raise NotImplementedError
+
+    @property
+    def extra(self):
+        raise NotImplementedError
+
+    @property
+    def serializers(self):
+        raise NotImplementedError
+
+    @property
+    def ssl(self):
+        raise NotImplementedError
+
+    @property
+    def proxy(self):
+        raise NotImplementedError
+
+    @property
+    def headers(self):
+        raise NotImplementedError
+
+    @property
+    def application_session(self):
+        raise NotImplementedError
+
+    @property
+    def call(self):
+        raise NotImplementedError
+
+    @property
+    def register(self):
+        raise NotImplementedError
+
+    @property
+    def publish(self):
+        raise NotImplementedError
+
+    @property
+    def subscribe(self):
+        raise NotImplementedError
+
+
+class AbstractCallManager(object):
+
+    @property
+    def session(self) -> AbstractSession:
+        raise NotImplementedError
+
+    def __call__(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def __getitem__(self, item):
+        raise NotImplementedError
+
+    def __getattr__(self, item):
         raise NotImplementedError
 
 
@@ -77,19 +146,27 @@ class AbstractCall(object):
         raise NotImplementedError
 
 
-class AbstractCallManager(object):
+class AbstractCallInvocation(object):
 
     @property
-    def session(self) -> AbstractSession:
+    def result(self):
+        raise NotImplementedError
+
+    @property
+    def progress(self):
+        raise NotImplementedError
+
+    @property
+    def exception(self):
+        raise NotImplementedError
+
+    def __default_on_progress(self, value):
+        raise NotImplementedError
+
+    async def __invoke(self):
         raise NotImplementedError
 
     def __call__(self, *args, **kwargs):
-        raise NotImplementedError
-
-    def __getitem__(self, item):
-        raise NotImplementedError
-
-    def __getattr__(self, item):
         raise NotImplementedError
 
 
@@ -105,45 +182,5 @@ class AbstractSubscribe(object):
     pass
 
 
-class AbstractSession(object):
 
-    @property
-    def session_manager(self) -> AbstractSessionManager:
-        raise NotImplementedError
-
-    @property
-    def application_session(self):
-        raise NotImplementedError
-
-    @property
-    def call(self):
-        raise NotImplementedError
-
-    @property
-    def register(self):
-        raise NotImplementedError
-
-    @property
-    def publish(self):
-        raise NotImplementedError
-
-    @property
-    def subscribe(self):
-        raise NotImplementedError
-
-
-class AbstractSessionManager(object):
-
-    @property
-    def loop(self):
-        raise NotImplementedError
-
-    def __call__(self, *args, **kwargs):
-        raise NotImplementedError
-
-    def __getitem__(self, item):
-        raise NotImplementedError
-
-    def __getattr__(self, item):
-        raise NotImplementedError
 

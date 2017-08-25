@@ -22,13 +22,14 @@
 # SOFTWARE.
 ################################################################################
 import asyncio
-from asyncio import AbstractEventLoop, Future
-from functools import partial
-from typing import Type
+from asyncio import AbstractEventLoop
+from ssl import SSLContext
 
 import txaio
 from autobahn.asyncio.wamp import ApplicationSession, ApplicationRunner
 from autobahn.wamp import ComponentConfig
+from autobahn.wamp.interfaces import ISerializer
+from typing import Type, List, Union
 
 from opendna.autobahn.repl.abc import (
     AbstractSession,
@@ -45,17 +46,75 @@ class Session(AbstractSession):
     The Session implements a synchronous interface interacting with an
     enclosed ApplicationSession instance
     """
-    def __init__(self, manager: AbstractSessionManager,
-                 application_session: ApplicationSession):
+    def __init__(self, manager: AbstractSessionManager, uri: str, realm: str,
+                 extra: dict=None, serializers: List[ISerializer]=None,
+                 ssl: Union[SSLContext, bool]=None, proxy: dict=None,
+                 headers: dict=None):
         assert isinstance(manager, AbstractSessionManager)
-        assert isinstance(application_session, ApplicationSession)
+        assert isinstance(uri, str)
+        assert realm is None or isinstance(realm, str)
+        assert extra is None or isinstance(extra, dict)
+        assert serializers is None or isinstance(serializers, list)
+        assert ssl is None or isinstance(ssl, (SSLContext, bool))
+        assert proxy is None or isinstance(proxy, dict)
+        assert headers is None or isinstance(headers, dict)
         self.__manager = manager
-        self.__application_session = application_session
+        self.__uri = uri
+        self.__realm = realm
+        self.__extra = extra
+        self.__serializers = serializers
+        self.__ssl = ssl
+        self.__proxy = proxy
+        self.__headers = headers
         self.__call_manager = CallManager(self)
+        self.__application_session = None
+        runner = ApplicationRunner(
+            uri, realm, extra, serializers, ssl, proxy, headers
+        )
+        self.__future = asyncio.ensure_future(
+            runner.run(
+                make=self.__factory,
+                start_loop=False,
+                log_level='info'  # TODO: Support custom log levels?
+            ),
+            loop=manager.loop
+        )
+
+    def __factory(self, config: ComponentConfig):
+        self.__application_session = ApplicationSession(config)
+        return self.__application_session
 
     @property
     def session_manager(self) -> AbstractSessionManager:
         return self.__manager
+
+    @property
+    def uri(self):
+        return self.__uri
+
+    @property
+    def realm(self):
+        return self.__realm
+
+    @property
+    def extra(self):
+        return self.__extra
+
+    @property
+    def serializers(self):
+        return self.__serializers
+
+    @property
+    def ssl(self):
+        return self.__ssl
+
+    @property
+    def proxy(self):
+        return self.__proxy
+
+    @property
+    def headers(self):
+        return self.__headers
 
     @property
     def application_session(self) -> ApplicationSession:
@@ -102,29 +161,18 @@ class SessionManager(AbstractSessionManager):
     def loop(self):
         return self.__loop
 
-    def __factory(self, config: ComponentConfig, name: str):
-        # TODO: ApplicationSession class should be customisable using command-line arguments or environment variables
-        application_session = ApplicationSession(config)
-        session = self.__session_class(self, application_session)
+    def __call__(self, uri: str, realm: str=None, extra=None,
+                 serializers=None, ssl=None, proxy=None, headers=None,
+                 name: str=None) -> AbstractSession:
+        while name is None or name in self.__session_name__sessions:
+            name = generate_name(name)
+        session = Session(
+            self, uri, realm, extra, serializers, ssl, proxy, headers
+        )
         session_id = id(session)
         self.__sessions[session_id] = session
         self.__session_name__sessions[name] = session_id
-        return application_session
-
-    def __call__(self, uri: str, realm: str, name: str=None) -> Future:
-        while name is None or name in self.__session_name__sessions:
-            name = generate_name(name)
-        self.logger.info(
-            'Creating new Session named {name} connecting to {realm} at {uri}',
-            name=name, realm=realm, uri=uri
-        )
-        runner = ApplicationRunner(uri, realm)
-        coro = runner.run(
-            partial(self.__factory, name=name),
-            start_loop=False
-        )
-        # TODO: Find a way to return the session itself?
-        return asyncio.ensure_future(coro)
+        return session
 
     def __getitem__(self, item: str):
         """
