@@ -21,7 +21,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 ################################################################################
-from asyncio import AbstractEventLoop
+from asyncio import AbstractEventLoop, Future
 
 from autobahn.wamp import ComponentConfig
 
@@ -51,6 +51,10 @@ class AbstractSession(object):
 
     @property
     def session_manager(self) -> AbstractSessionManager:
+        raise NotImplementedError
+
+    @property
+    def future(self) -> Future:
         raise NotImplementedError
 
     @property

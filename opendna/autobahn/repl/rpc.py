@@ -23,10 +23,10 @@
 ################################################################################
 import asyncio
 from copy import deepcopy
-from typing import Callable, Union, Any, Dict, Iterable
 
 import txaio
 from autobahn.wamp import CallOptions
+from typing import Callable, Union, Any, Dict, Iterable
 
 from opendna.autobahn.repl.abc import (
     AbstractCallInvocation,
@@ -54,10 +54,24 @@ class CallInvocation(AbstractCallInvocation):
         self.__call = call
         self.__args = args
         self.__kwargs = kwargs
-        self.__future = asyncio.ensure_future(self.__invoke(), loop=loop)
         self.__progress = []
         self.__result = None
         self.__exception = None
+
+        def invoke(future: asyncio.Future):
+            print('Here')
+            try:
+                result = future.result()
+                print(result)
+                self.__future = asyncio.ensure_future(self.__invoke(), loop=loop)
+                # TODO: This is failing because when __invoke tries to access
+                # TODO: call.call_manager.session.application_session it is still none
+                print(self.__future)
+            except Exception as e:
+                # TODO: Print message about failure
+                print(e)
+                pass
+        call.call_manager.session.future.add_done_callback(invoke)
 
     @property
     def result(self):

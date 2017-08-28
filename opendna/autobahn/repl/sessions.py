@@ -37,6 +37,7 @@ from opendna.autobahn.repl.abc import (
 )
 from opendna.autobahn.repl.rpc import CallManager
 from opendna.autobahn.repl.utils import generate_name
+from opendna.autobahn.repl.wamp import REPLApplicationSession
 
 __author__ = 'Adam Jorgensen <adam.jorgensen.za@gmail.com>'
 
@@ -71,7 +72,8 @@ class Session(AbstractSession):
         runner = ApplicationRunner(
             uri, realm, extra, serializers, ssl, proxy, headers
         )
-        self.__future = asyncio.ensure_future(
+        self.__future: asyncio.Future = manager.loop.create_future()
+        asyncio.ensure_future(
             runner.run(
                 make=self.__factory,
                 start_loop=False,
@@ -81,12 +83,19 @@ class Session(AbstractSession):
         )
 
     def __factory(self, config: ComponentConfig):
-        self.__application_session = ApplicationSession(config)
+        # TODO: Support custom ApplicationSession class
+        self.__application_session = REPLApplicationSession(
+            self.__future, config
+        )
         return self.__application_session
 
     @property
     def session_manager(self) -> AbstractSessionManager:
         return self.__manager
+
+    @property
+    def future(self) -> asyncio.Future:
+        return self.__future
 
     @property
     def uri(self):
