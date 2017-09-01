@@ -149,8 +149,6 @@ class SessionManager(AbstractSessionManager):
     with asyncio WAMP sessions. Custom SessionManager implementations should
     inherit from this class
     """
-    logger = txaio.make_logger()
-
     def __init__(self, loop: AbstractEventLoop,
                  session_class: Type[AbstractSession]):
         """

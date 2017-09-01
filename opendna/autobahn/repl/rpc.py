@@ -170,8 +170,6 @@ class Call(AbstractCall):
 
 
 class CallManager(AbstractCallManager):
-    logger = txaio.make_logger()
-
     def __init__(self, session: AbstractSession):
         super().__init__(session)
         self.__call_name__calls = {}
@@ -194,10 +192,7 @@ class CallManager(AbstractCallManager):
         """
         while name is None or name in self.__call_name__calls:
             name = generate_name(name)
-        self.logger.info(
-            'Generating call to {procedure} with name {name}',
-            procedure=procedure, name=name
-        )
+        print(f'Generating call to {procedure} with name {name}')
         # TODO: Allow custom Call class
         call = Call(
             manager=self, procedure=procedure, on_progress=on_progress,
