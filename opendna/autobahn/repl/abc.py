@@ -106,11 +106,17 @@ class AbstractSession(object):
         raise NotImplementedError
 
 
-class AbstractCallManager(object):
+class AbstractWAMPManager(object):
+    def __init__(self, session: AbstractSession):
+        assert isinstance(session, AbstractSession)
+        self.__session: AbstractSession = session
 
     @property
     def session(self) -> AbstractSession:
-        raise NotImplementedError
+        return self.__session
+
+
+class AbstractCallManager(AbstractWAMPManager):
 
     def __call__(self, *args, **kwargs):
         raise NotImplementedError
@@ -150,7 +156,7 @@ class AbstractCall(object):
         raise NotImplementedError
 
 
-class AbstractCallInvocation(object):
+class AbstractInvocation(object):
 
     @property
     def result(self):
@@ -178,7 +184,15 @@ class AbstractRegister(object):
     pass
 
 
-class AbstractPublish(object):
+class AbstractPublisherManager(AbstractWAMPManager):
+    pass
+
+
+class AbstractPublisher(object):
+    pass
+
+
+class AbstractPublication(object):
     pass
 
 

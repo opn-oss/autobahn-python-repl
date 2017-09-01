@@ -29,7 +29,7 @@ from autobahn.wamp import CallOptions
 from typing import Callable, Union, Any, Dict, Iterable
 
 from opendna.autobahn.repl.abc import (
-    AbstractCallInvocation,
+    AbstractInvocation,
     AbstractCall,
     AbstractCallManager,
     AbstractSession)
@@ -38,12 +38,10 @@ from opendna.autobahn.repl.utils import generate_name
 __author__ = 'Adam Jorgensen <adam.jorgensen.za@gmail.com>'
 
 
-class Keep(object):
-    pass
-Keep = Keep()
+Keep = type('Keep', (object,), {})()
 
 
-class CallInvocation(AbstractCallInvocation):
+class Invocation(AbstractInvocation):
 
     def __init__(self,
                  call: AbstractCall,
@@ -107,7 +105,7 @@ class CallInvocation(AbstractCallInvocation):
         except Exception as e:
             self.__exception = e
 
-    def __call__(self, *new_args, **new_kwargs) -> AbstractCallInvocation:
+    def __call__(self, *new_args, **new_kwargs) -> AbstractInvocation:
         """
 
         :param new_args:
@@ -152,12 +150,12 @@ class Call(AbstractCall):
     def timeout(self) -> Union[int, float, None]:
         return self.__timeout
 
-    def __call__(self, *args, **kwargs) -> AbstractCallInvocation:
+    def __call__(self, *args, **kwargs) -> AbstractInvocation:
         name = generate_name()
         while name in self.__invocations:
             name = generate_name()
-        # TODO: Allow custom CallInvocation class
-        invocation = CallInvocation(call=self, args=args, kwargs=kwargs)
+        # TODO: Allow custom Invocation class
+        invocation = Invocation(call=self, args=args, kwargs=kwargs)
         invocation_id = id(invocation)
         self.__invocations[invocation_id] = invocation
         self.__invocation_name__invocations[name] = invocation_id
@@ -175,14 +173,9 @@ class CallManager(AbstractCallManager):
     logger = txaio.make_logger()
 
     def __init__(self, session: AbstractSession):
-        assert isinstance(session, AbstractSession)
-        self.__session = session
+        super().__init__(session)
         self.__call_name__calls = {}
         self.__calls = {}
-
-    @property
-    def session(self) -> AbstractSession:
-        return self.__session
 
     def __call__(self,
                  procedure: str,
