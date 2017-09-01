@@ -35,6 +35,7 @@ from opendna.autobahn.repl.abc import (
     AbstractSession,
     AbstractSessionManager
 )
+from opendna.autobahn.repl.pubsub import PublisherManager
 from opendna.autobahn.repl.rpc import CallManager
 from opendna.autobahn.repl.utils import generate_name
 from opendna.autobahn.repl.wamp import REPLApplicationSession
@@ -68,6 +69,7 @@ class Session(AbstractSession):
         self.__proxy = proxy
         self.__headers = headers
         self.__call_manager = CallManager(self)
+        self.__publisher_manager = PublisherManager(self)
         self.__application_session = None
         runner = ApplicationRunner(
             uri, realm, extra, serializers, ssl, proxy, headers
@@ -130,15 +132,18 @@ class Session(AbstractSession):
         return self.__application_session
 
     @property
-    def call(self):
+    def call(self) -> CallManager:
         return self.__call_manager
 
+    @property
     def register(self):
         raise NotImplementedError
 
-    def publish(self):
-        raise NotImplementedError
+    @property
+    def publish(self) -> PublisherManager:
+        return self.__publisher_manager
 
+    @property
     def subscribe(self):
         raise NotImplementedError
 
