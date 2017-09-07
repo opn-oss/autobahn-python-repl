@@ -24,7 +24,6 @@
 import asyncio
 from copy import deepcopy
 
-import txaio
 from autobahn.wamp import CallOptions
 from typing import Callable, Union, Any, Dict, Iterable
 
@@ -32,7 +31,9 @@ from opendna.autobahn.repl.abc import (
     AbstractInvocation,
     AbstractCall,
     AbstractCallManager,
-    AbstractSession)
+    AbstractSession
+)
+from opendna.autobahn.repl.mixins import HasSession, HasNames
 from opendna.autobahn.repl.utils import generate_name
 
 __author__ = 'Adam Jorgensen <adam.jorgensen.za@gmail.com>'
@@ -57,7 +58,6 @@ class Invocation(AbstractInvocation):
         self.__exception = None
 
         def invoke(future: asyncio.Future):
-            print('Here')
             try:
                 result = future.result()
                 print(result)
@@ -122,17 +122,16 @@ class Invocation(AbstractInvocation):
         return self.__call(*args, **kwargs)
 
 
-class Call(AbstractCall):
+class Call(HasNames, AbstractCall):
     def __init__(self, manager: AbstractCallManager,
                  procedure: str, on_progress: Callable=None,
                  timeout: Union[int, float, None]=None):
         assert isinstance(manager, AbstractCallManager)
+        self.__init_has_names__()
         self.__manager = manager
         self.__procedure = procedure
         self.__on_progress = on_progress
         self.__timeout = timeout
-        self.__invocation_name__invocations = {}
-        self.__invocations = {}
 
     @property
     def call_manager(self) -> AbstractCallManager:
@@ -152,46 +151,39 @@ class Call(AbstractCall):
 
     def __call__(self, *args, **kwargs) -> AbstractInvocation:
         name = generate_name()
-        while name in self.__invocations:
+        while name in self:
             name = generate_name()
         # TODO: Allow custom Invocation class
         invocation = Invocation(call=self, args=args, kwargs=kwargs)
         invocation_id = id(invocation)
-        self.__invocations[invocation_id] = invocation
-        self.__invocation_name__invocations[name] = invocation_id
+        self._items[invocation_id] = invocation
+        self._names__items[name] = invocation_id
         return invocation
 
-    def __getitem__(self, item):
-        item = self.__invocation_name__invocations.get(item, item)
-        return self.__invocations[item]
 
-    def __getattr__(self, item):
-        return self[item]
-
-
-class CallManager(AbstractCallManager):
+class CallManager(HasSession, HasNames, AbstractCallManager):
     def __init__(self, session: AbstractSession):
-        super().__init__(session)
-        self.__call_name__calls = {}
-        self.__calls = {}
+        self.__init_has_session__(session)
+        self.__init_has_names__()
 
+    @HasNames.with_name
     def __call__(self,
                  procedure: str,
-                 name: str=None,
                  on_progress: Callable=None,
-                 timeout: Union[int, float]=None) -> AbstractCall:
+                 timeout: Union[int, float]=None, *,
+                 name: str=None) -> AbstractCall:
         """
         Generates a Callable which can be called to initiate an asynchronous
         request to the WAMP router this Session is connected to
 
         :param procedure:
-        :param name:
         :param on_progress:
         :param timeout:
+        :param name: Optional. Keyword-only argument.
         :return:
         """
-        while name is None or name in self.__call_name__calls:
-            name = generate_name(name)
+        # while name is None or name in self.__call_name__calls:
+        #     name = generate_name(name)
         print(f'Generating call to {procedure} with name {name}')
         # TODO: Allow custom Call class
         call = Call(
@@ -199,13 +191,6 @@ class CallManager(AbstractCallManager):
             timeout=timeout
         )
         call_id = id(call)
-        self.__calls[call_id] = call
-        self.__call_name__calls[name] = call_id
+        self._items[call_id] = call
+        self._names__items[name] = call_id
         return call
-
-    def __getitem__(self, item: str):
-        item = self.__call_name__calls.get(item, item)
-        return self.__calls[item]
-
-    def __getattr__(self, item: str):
-        return self[item]

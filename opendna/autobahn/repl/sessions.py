@@ -25,7 +25,6 @@ import asyncio
 from asyncio import AbstractEventLoop
 from ssl import SSLContext
 
-import txaio
 from autobahn.asyncio.wamp import ApplicationSession, ApplicationRunner
 from autobahn.wamp import ComponentConfig
 from autobahn.wamp.interfaces import ISerializer
@@ -35,9 +34,9 @@ from opendna.autobahn.repl.abc import (
     AbstractSession,
     AbstractSessionManager
 )
+from opendna.autobahn.repl.mixins import HasNames
 from opendna.autobahn.repl.pubsub import PublisherManager
 from opendna.autobahn.repl.rpc import CallManager
-from opendna.autobahn.repl.utils import generate_name
 from opendna.autobahn.repl.wamp import REPLApplicationSession
 
 __author__ = 'Adam Jorgensen <adam.jorgensen.za@gmail.com>'
@@ -148,7 +147,7 @@ class Session(AbstractSession):
         raise NotImplementedError
 
 
-class SessionManager(AbstractSessionManager):
+class SessionManager(HasNames, AbstractSessionManager):
     """
     The SessionManager implements an interface for creating and interacting
     with asyncio WAMP sessions. Custom SessionManager implementations should
@@ -164,42 +163,23 @@ class SessionManager(AbstractSessionManager):
         """
         assert isinstance(loop, AbstractEventLoop)
         assert issubclass(session_class, AbstractSession)
+        self.__init_has_names__()
         self.__loop = loop
-        self.__sessions = {}
-        self.__session_name__sessions = {}
         self.__session_class = session_class
 
     @property
     def loop(self):
         return self.__loop
 
+    @HasNames.with_name
     def __call__(self, uri: str, realm: str=None, extra=None,
-                 serializers=None, ssl=None, proxy=None, headers=None,
+                 serializers=None, ssl=None, proxy=None, headers=None, *,
                  name: str=None) -> AbstractSession:
-        while name is None or name in self.__session_name__sessions:
-            name = generate_name(name)
+        print(f'Generating session to {realm}@{uri} with name {name}')
         session = Session(
             self, uri, realm, extra, serializers, ssl, proxy, headers
         )
         session_id = id(session)
-        self.__sessions[session_id] = session
-        self.__session_name__sessions[name] = session_id
+        self._items[session_id] = session
+        self._names__items[name] = session_id
         return session
-
-    def __getitem__(self, item: str):
-        """
-        Provides item-style access to a Session by name or session ID
-        :param item:
-        :return:
-        """
-        item = self.__session_name__sessions.get(item, item)
-        return self.__sessions[item]
-
-    def __getattr__(self, item: str):
-        """
-        Provides attribute-style access to a Session via name
-
-        :param item:
-        :return:
-        """
-        return self[item]

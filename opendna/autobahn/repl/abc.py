@@ -22,6 +22,7 @@
 # SOFTWARE.
 ################################################################################
 from asyncio import AbstractEventLoop, Future
+from typing import Callable, Union
 
 from autobahn.wamp import ComponentConfig
 
@@ -106,25 +107,15 @@ class AbstractSession(object):
         raise NotImplementedError
 
 
-class AbstractWAMPManager(object):
-    def __init__(self, session: AbstractSession):
-        assert isinstance(session, AbstractSession)
-        self.__session: AbstractSession = session
+class AbstractCallManager(object):
 
-    @property
-    def session(self) -> AbstractSession:
-        return self.__session
-
-
-class AbstractCallManager(AbstractWAMPManager):
-
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs) -> 'AbstractCall':
         raise NotImplementedError
 
-    def __getitem__(self, item):
+    def __getitem__(self, item) -> 'AbstractCall':
         raise NotImplementedError
 
-    def __getattr__(self, item):
+    def __getattr__(self, item) -> 'AbstractCall':
         raise NotImplementedError
 
 
@@ -135,24 +126,24 @@ class AbstractCall(object):
         raise NotImplementedError
 
     @property
-    def procedure(self):
+    def procedure(self) -> str:
         raise NotImplementedError
 
     @property
-    def on_progress(self):
+    def on_progress(self) -> Callable:
         raise NotImplementedError
 
     @property
-    def timeout(self):
+    def timeout(self) -> Union[int, float]:
         raise NotImplementedError
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs) -> 'AbstractInvocation':
         raise NotImplementedError
 
-    def __getitem__(self, item):
+    def __getitem__(self, item) -> 'AbstractInvocation':
         raise NotImplementedError
 
-    def __getattr__(self, item):
+    def __getattr__(self, item) -> 'AbstractInvocation':
         raise NotImplementedError
 
 
@@ -184,7 +175,7 @@ class AbstractRegister(object):
     pass
 
 
-class AbstractPublisherManager(AbstractWAMPManager):
+class AbstractPublisherManager(object):
     pass
 
 
@@ -198,7 +189,3 @@ class AbstractPublication(object):
 
 class AbstractSubscribe(object):
     pass
-
-
-
-
