@@ -46,8 +46,8 @@ class HasNamesMeta(type):
     """
     def __with_name(cls, f, self: 'HasNames', *args, **kwargs):
         name = generate_name(kwargs.get('name'))
-        while name is None or name in self:
-            name = generate_name(name)
+        while name in self:
+            name = generate_name(length=len(name) + 1)
         kwargs['name'] = name
         return f(self, *args, **kwargs)
 
