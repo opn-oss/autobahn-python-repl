@@ -60,15 +60,9 @@ class Invocation(AbstractInvocation):
         def invoke(future: asyncio.Future):
             try:
                 result = future.result()
-                print(result)
                 self.__future = asyncio.ensure_future(self.__invoke(), loop=loop)
-                # TODO: This is failing because when __invoke tries to access
-                # TODO: call.call_manager.session.application_session it is still none
-                print(self.__future)
             except Exception as e:
-                # TODO: Print message about failure
                 print(e)
-                pass
         call.call_manager.session.future.add_done_callback(invoke)
 
     @property
@@ -152,7 +146,7 @@ class Call(HasNames, AbstractCall):
     def __call__(self, *args, **kwargs) -> AbstractInvocation:
         name = generate_name()
         while name in self:
-            name = generate_name()
+            name = generate_name(length=len(name) + 1)
         # TODO: Allow custom Invocation class
         invocation = Invocation(call=self, args=args, kwargs=kwargs)
         invocation_id = id(invocation)
