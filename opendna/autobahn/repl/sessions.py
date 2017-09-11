@@ -91,7 +91,7 @@ class Session(AbstractSession):
         return self.__application_session
 
     @property
-    def session_manager(self) -> AbstractSessionManager:
+    def manager(self) -> AbstractSessionManager:
         return self.__manager
 
     @property

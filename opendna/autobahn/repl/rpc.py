@@ -34,11 +34,9 @@ from opendna.autobahn.repl.abc import (
     AbstractSession
 )
 from opendna.autobahn.repl.mixins import HasSession, HasNames
+from opendna.autobahn.repl.utils import Keep
 
 __author__ = 'Adam Jorgensen <adam.jorgensen.za@gmail.com>'
-
-
-Keep = type('Keep', (object,), {})()
 
 
 class Invocation(AbstractInvocation):
@@ -48,7 +46,7 @@ class Invocation(AbstractInvocation):
                  args: Iterable,
                  kwargs: Dict[str, Any]):
         assert isinstance(call, AbstractCall)
-        loop = call.call_manager.session.session_manager.loop
+        loop = call.manager.session.manager.loop
         self.__call = call
         self.__args = args
         self.__kwargs = kwargs
@@ -62,7 +60,7 @@ class Invocation(AbstractInvocation):
                 self.__future = asyncio.ensure_future(self.__invoke(), loop=loop)
             except Exception as e:
                 print(e)
-        call.call_manager.session.future.add_done_callback(invoke)
+        call.manager.session.future.add_done_callback(invoke)
 
     @property
     def result(self):
@@ -88,7 +86,7 @@ class Invocation(AbstractInvocation):
                 ),
                 timeout=self.__call.timeout
             )
-            session = self.__call.call_manager.session.application_session
+            session = self.__call.manager.session.application_session
             self.__result = await session.call(
                 self.__call.procedure,
                 *self.__args,
@@ -127,7 +125,7 @@ class Call(HasNames, AbstractCall):
         self.__timeout = timeout
 
     @property
-    def call_manager(self) -> AbstractCallManager:
+    def manager(self) -> AbstractCallManager:
         return self.__manager
 
     @property

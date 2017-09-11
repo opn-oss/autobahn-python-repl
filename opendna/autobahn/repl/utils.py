@@ -42,3 +42,6 @@ def generate_name(name: str=None, length: int=8):
             + ''.join(choices(string.ascii_letters + string.digits, k=length-1))
         )
     return name
+
+
+Keep = type('Keep', (object,), {})()

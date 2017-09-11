@@ -51,7 +51,7 @@ class AbstractSession(object):
         raise NotImplementedError
 
     @property
-    def session_manager(self) -> AbstractSessionManager:
+    def manager(self) -> AbstractSessionManager:
         raise NotImplementedError
 
     @property
@@ -122,7 +122,7 @@ class AbstractCallManager(object):
 class AbstractCall(object):
 
     @property
-    def call_manager(self) -> AbstractCallManager:
+    def manager(self) -> AbstractCallManager:
         raise NotImplementedError
 
     @property

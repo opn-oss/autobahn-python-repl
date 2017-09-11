@@ -21,7 +21,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 ################################################################################
-from typing import Union, List
+import asyncio
+from copy import deepcopy
+
+from autobahn.wamp import PublishOptions
+from typing import Union, List, Iterable, Dict, Any
 
 from opendna.autobahn.repl.abc import (
     AbstractPublication,
@@ -30,12 +34,78 @@ from opendna.autobahn.repl.abc import (
     AbstractSession
 )
 from opendna.autobahn.repl.mixins import HasNames, HasSession
+from opendna.autobahn.repl.utils import Keep
 
 __author__ = 'Adam Jorgensen <adam.jorgensen.za@gmail.com>'
 
 
 class Publication(AbstractPublication):
-    pass
+    def __init__(self, publisher: AbstractPublisher,
+                 args: Iterable, kwargs: Dict[str, Any]):
+        assert isinstance(publisher, AbstractPublisher)
+        loop = publisher.manager.session.manager.loop
+        self.__publisher = publisher
+        self.__args = args
+        self.__kwargs = kwargs
+        self.__result = None
+        self.__exception = None
+
+        def invoke(future: asyncio.Future):
+            try:
+                result = future.result()
+                self.__future = asyncio.ensure_future(self.__invoke(), loop=loop)
+            except Exception as e:
+                print(e)
+        publisher.manager.session.future.add_done_callback(invoke)
+
+    @property
+    def result(self):
+        return self.__result
+
+    @property
+    def exception(self):
+        return self.__exception
+
+    async def __invoke(self):
+        try:
+            options = PublishOptions(
+                acknowledge=self.__publisher.acknowledge,
+                exclude_me=self.__publisher.exclude_me,
+                exclude=self.__publisher.exclude,
+                exclude_authid=self.__publisher.exclude_authid,
+                exclude_authrole=self.__publisher.exclude_authrole,
+                eligible=self.__publisher.eligible,
+                eligible_authid=self.__publisher.eligibile_authid,
+                eligible_authrole=self.__publisher.eligible_authrole,
+                retain=self.__publisher.retain
+            )
+            session = self.__publisher.manager.session.application_session
+            self.__result = session.publish(
+                topic=self.__publisher.topic,
+                *self.__args,
+                options=options,
+                **self.__kwargs
+            )
+            if self.__result is not None and self.__publisher.acknowledge:
+                self.__result = await self.__result
+        except Exception as e:
+            self.__exception = e
+
+    def __call__(self, *new_args, **new_kwargs) -> AbstractPublication:
+        """
+
+        :param new_args:
+        :param new_kwargs:
+        :return:
+        """
+        args = deepcopy(self.__args)
+        args = [
+            arg if new_arg == Keep else new_arg
+            for arg, new_arg in zip(args, new_args)
+        ]
+        kwargs = deepcopy(self.__kwargs)
+        kwargs.update(new_kwargs)
+        return self.__call(*args, **kwargs)
 
 
 class Publisher(HasNames, AbstractPublisher):
@@ -62,6 +132,46 @@ class Publisher(HasNames, AbstractPublisher):
         self.__eligible_authid = eligible_authid
         self.__eligible_authrole = eligible_authrole
         self.__retain = retain
+
+    @property
+    def manager(self) -> AbstractPublisherManager:
+        return self.__manager
+
+    @property
+    def topic(self) -> str:
+        return self.__topic
+
+    @property
+    def exclude_me(self) -> bool:
+        return self.__exclude_me
+
+    @property
+    def exclude(self) -> Union[int, List[int]]:
+        return self.__exclude
+
+    @property
+    def exclude_authid(self) -> Union[str, List[str]]:
+        return self.__exclude_authid
+
+    @property
+    def exclude_authrole(self) -> Union[str, List[str]]:
+        return self.__exclude_authrole
+
+    @property
+    def eligible(self) -> Union[int, List[int]]:
+        return self.__eligible
+
+    @property
+    def eligible_authid(self) -> Union[str, List[str]]:
+        return self.__eligible_authid
+
+    @property
+    def eligible_authrole(self) -> Union[str, List[str]]:
+        return self.__eligible_authrole
+
+    @property
+    def retain(self) -> bool:
+        return self.__retain
 
     def __call__(self, *args, **kwargs) -> AbstractPublication:
         name = self._generate_name()
