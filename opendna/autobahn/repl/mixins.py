@@ -45,10 +45,7 @@ class HasNamesMeta(type):
     Meta-class used by HasNames to provide the with_name decorator
     """
     def __with_name(cls, f, self: 'HasNames', *args, **kwargs):
-        name = generate_name(kwargs.get('name'))
-        while name in self:
-            name = generate_name(length=len(name) + 1)
-        kwargs['name'] = name
+        kwargs['name'] = self._generate_name(kwargs.get('name'))
         return f(self, *args, **kwargs)
 
     def with_name(cls, f):
@@ -63,6 +60,12 @@ class HasNames(object, metaclass=HasNamesMeta):
     def __init_has_names__(self):
         self._items = {}
         self._names__items = {}
+
+    def _generate_name(self, name=None):
+        name = generate_name(name)
+        while name in self:
+            name = generate_name(length=len(name) + 1)
+        return name
 
     def __getitem__(self, item):
         item = self._names__items.get(item, item)

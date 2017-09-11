@@ -34,7 +34,6 @@ from opendna.autobahn.repl.abc import (
     AbstractSession
 )
 from opendna.autobahn.repl.mixins import HasSession, HasNames
-from opendna.autobahn.repl.utils import generate_name
 
 __author__ = 'Adam Jorgensen <adam.jorgensen.za@gmail.com>'
 
@@ -144,9 +143,7 @@ class Call(HasNames, AbstractCall):
         return self.__timeout
 
     def __call__(self, *args, **kwargs) -> AbstractInvocation:
-        name = generate_name()
-        while name in self:
-            name = generate_name(length=len(name) + 1)
+        name = self._generate_name()
         # TODO: Allow custom Invocation class
         invocation = Invocation(call=self, args=args, kwargs=kwargs)
         invocation_id = id(invocation)

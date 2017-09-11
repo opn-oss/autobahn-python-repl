@@ -30,7 +30,6 @@ from opendna.autobahn.repl.abc import (
     AbstractSession
 )
 from opendna.autobahn.repl.mixins import HasNames, HasSession
-from opendna.autobahn.repl.utils import generate_name
 
 __author__ = 'Adam Jorgensen <adam.jorgensen.za@gmail.com>'
 
@@ -65,9 +64,7 @@ class Publisher(HasNames, AbstractPublisher):
         self.__retain = retain
 
     def __call__(self, *args, **kwargs) -> AbstractPublication:
-        name = generate_name()
-        while name in self:
-            name = generate_name(length=len(name) + 1)
+        name = self._generate_name()
         publication = Publication(publisher=self, args=args, kwargs=kwargs)
         publication_id = id(publication)
         self._items[publication_id] = publication
