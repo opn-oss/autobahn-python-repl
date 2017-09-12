@@ -22,7 +22,7 @@
 # SOFTWARE.
 ################################################################################
 from asyncio import AbstractEventLoop, Future
-from typing import Callable, Union
+from typing import Callable, Union, List, Iterable, Dict, Any, Optional
 
 from autobahn.wamp import ComponentConfig
 
@@ -108,6 +108,9 @@ class AbstractSession(object):
 
 
 class AbstractCallManager(object):
+    @property
+    def session(self) -> AbstractSession:
+        raise NotImplementedError
 
     def __call__(self, *args, **kwargs) -> 'AbstractCall':
         raise NotImplementedError
@@ -120,22 +123,30 @@ class AbstractCallManager(object):
 
 
 class AbstractCall(object):
+    def __init__(self, manager: AbstractCallManager,
+                 procedure: str, on_progress: Callable=None,
+                 timeout: Union[int, float, None]=None):
+        assert isinstance(manager, AbstractCallManager)
+        self._manager = manager
+        self._procedure = procedure
+        self._on_progress = on_progress
+        self._timeout = timeout
 
     @property
     def manager(self) -> AbstractCallManager:
-        raise NotImplementedError
+        return self._manager
 
     @property
     def procedure(self) -> str:
-        raise NotImplementedError
+        return self._procedure
 
     @property
     def on_progress(self) -> Callable:
-        raise NotImplementedError
+        return self._on_progress
 
     @property
-    def timeout(self) -> Union[int, float]:
-        raise NotImplementedError
+    def timeout(self) -> Union[int, float, None]:
+        return self._timeout
 
     def __call__(self, *args, **kwargs) -> 'AbstractInvocation':
         raise NotImplementedError
@@ -148,21 +159,29 @@ class AbstractCall(object):
 
 
 class AbstractInvocation(object):
+    def __init__(self, call: 'AbstractCall', args: Iterable,
+                 kwargs: Dict[str, Any]):
+        self._call = call
+        self._args = args
+        self._kwargs = kwargs
+        self._progress = []
+        self._result = None
+        self._exception = None
 
     @property
-    def result(self):
-        raise NotImplementedError
+    def result(self) -> Optional[Any]:
+        return self._result
 
     @property
-    def progress(self):
-        raise NotImplementedError
+    def progress(self) -> list:
+        return self._progress
 
     @property
-    def exception(self):
-        raise NotImplementedError
+    def exception(self) -> Optional[Exception]:
+        return self._exception
 
-    def __default_on_progress(self, value):
-        raise NotImplementedError
+    def _default_on_progress(self, value):
+        self._progress.append(value)
 
     async def __invoke(self):
         raise NotImplementedError
@@ -176,15 +195,123 @@ class AbstractRegister(object):
 
 
 class AbstractPublisherManager(object):
-    pass
+    @property
+    def session(self) -> AbstractSession:
+        raise NotImplementedError
+
+    def __call__(self, *args, **kwargs) -> 'AbstractPublisher':
+        raise NotImplementedError
+
+    def __getitem__(self, item) -> 'AbstractPublisher':
+        raise NotImplementedError
+
+    def __getattr__(self, item) -> 'AbstractPublisher':
+        raise NotImplementedError
 
 
 class AbstractPublisher(object):
-    pass
+    def __init__(self,
+                 manager: AbstractPublisherManager,
+                 topic: str,
+                 acknowledge: bool=None,
+                 exclude_me: bool=None,
+                 exclude: Union[int, List[int]]=None,
+                 exclude_authid: Union[str, List[str]]=None,
+                 exclude_authrole: Union[str, List[str]]=None,
+                 eligible: Union[int, List[int]]=None,
+                 eligible_authid: Union[str, List[str]]=None,
+                 eligible_authrole: Union[str, List[str]]=None,
+                 retain: bool=None):
+        assert isinstance(manager, AbstractPublisherManager)
+        self._manager = manager
+        self._topic = topic
+        self._acknowledge = acknowledge
+        self._exclude_me = exclude_me
+        self._exclude = exclude
+        self._exclude_authid = exclude_authid
+        self._exclude_authrole = exclude_authrole
+        self._eligible = eligible
+        self._eligible_authid = eligible_authid
+        self._eligible_authrole = eligible_authrole
+        self._retain = retain
+
+    @property
+    def manager(self) -> AbstractPublisherManager:
+        return self._manager
+
+    @property
+    def topic(self) -> str:
+        return self._topic
+
+    @property
+    def acknowledge(self):
+        return self._acknowledge
+
+    @property
+    def exclude_me(self) -> bool:
+        return self._exclude_me
+
+    @property
+    def exclude(self) -> Union[int, List[int]]:
+        return self._exclude
+
+    @property
+    def exclude_authid(self) -> Union[str, List[str]]:
+        return self._exclude_authid
+
+    @property
+    def exclude_authrole(self) -> Union[str, List[str]]:
+        return self._exclude_authrole
+
+    @property
+    def eligible(self) -> Union[int, List[int]]:
+        return self._eligible
+
+    @property
+    def eligible_authid(self) -> Union[str, List[str]]:
+        return self._eligible_authid
+
+    @property
+    def eligible_authrole(self) -> Union[str, List[str]]:
+        return self._eligible_authrole
+
+    @property
+    def retain(self) -> bool:
+        return self._retain
+
+    def __call__(self, *args, **kwargs) -> 'AbstractPublication':
+        raise NotImplementedError
+
+    def __getitem__(self, item) -> 'AbstractPublication':
+        raise NotImplementedError
+
+    def __getattr__(self, item) -> 'AbstractPublication':
+        raise NotImplementedError
 
 
 class AbstractPublication(object):
-    pass
+    def __init__(self, publisher: AbstractPublisher,
+                 args: Iterable, kwargs: Dict[str, Any]):
+        assert isinstance(publisher, AbstractPublisher)
+        self._publisher = publisher
+        self._args = args
+        self._kwargs = kwargs
+        self._result = None
+        self._exception = None
+
+    @property
+    def result(self) -> Optional[Any]:
+        return self._result
+
+    @property
+    def exception(self) -> Exception:
+        return self._exception
+
+    async def __invoke(self):
+        raise NotImplementedError
+
+    def __call__(self, *args, **kwargs) -> 'AbstractPublication':
+        raise NotImplementedError
 
 
 class AbstractSubscribe(object):

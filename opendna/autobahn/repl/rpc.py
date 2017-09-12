@@ -45,16 +45,10 @@ class Invocation(AbstractInvocation):
                  call: AbstractCall,
                  args: Iterable,
                  kwargs: Dict[str, Any]):
-        assert isinstance(call, AbstractCall)
-        loop = call.manager.session.manager.loop
-        self.__call = call
-        self.__args = args
-        self.__kwargs = kwargs
-        self.__progress = []
-        self.__result = None
-        self.__exception = None
+        super(Invocation, self).__init__(call=call, args=args, kwargs=kwargs)
 
         def invoke(future: asyncio.Future):
+            loop = call.manager.session.manager.loop
             try:
                 result = future.result()
                 self.__future = asyncio.ensure_future(self.__invoke(), loop=loop)
@@ -62,36 +56,21 @@ class Invocation(AbstractInvocation):
                 print(e)
         call.manager.session.future.add_done_callback(invoke)
 
-    @property
-    def result(self):
-        return self.__result
-
-    @property
-    def progress(self):
-        return self.__progress
-
-    @property
-    def exception(self):
-        return self.__exception
-
-    def __default_on_progress(self, value):
-        self.__progress.append(value)
-
     async def __invoke(self):
         try:
             options = CallOptions(
                 on_progress=(
-                    self.__call.on_progress if callable(self.__call.on_progress)
-                    else self.__default_on_progress
+                    self._call.on_progress if callable(self._call.on_progress)
+                    else self._default_on_progress
                 ),
-                timeout=self.__call.timeout
+                timeout=self._call.timeout
             )
-            session = self.__call.manager.session.application_session
+            session = self._call.manager.session.application_session
             self.__result = await session.call(
-                self.__call.procedure,
-                *self.__args,
+                self._call.procedure,
+                *self._args,
                 options=options,
-                **self.__kwargs
+                **self._kwargs
             )
         except Exception as e:
             self.__exception = e
@@ -103,42 +82,25 @@ class Invocation(AbstractInvocation):
         :param new_kwargs:
         :return:
         """
-        args = deepcopy(self.__args)
+        args = deepcopy(self._args)
         args = [
             arg if new_arg == Keep else new_arg
             for arg, new_arg in zip(args, new_args)
         ]
-        kwargs = deepcopy(self.__kwargs)
+        kwargs = deepcopy(self._kwargs)
         kwargs.update(new_kwargs)
-        return self.__call(*args, **kwargs)
+        return self._call(*args, **kwargs)
 
 
 class Call(HasNames, AbstractCall):
     def __init__(self, manager: AbstractCallManager,
                  procedure: str, on_progress: Callable=None,
                  timeout: Union[int, float, None]=None):
-        assert isinstance(manager, AbstractCallManager)
         self.__init_has_names__()
-        self.__manager = manager
-        self.__procedure = procedure
-        self.__on_progress = on_progress
-        self.__timeout = timeout
-
-    @property
-    def manager(self) -> AbstractCallManager:
-        return self.__manager
-
-    @property
-    def procedure(self) -> str:
-        return self.__procedure
-
-    @property
-    def on_progress(self) -> Callable:
-        return self.__on_progress
-
-    @property
-    def timeout(self) -> Union[int, float, None]:
-        return self.__timeout
+        super().__init__(
+            manager=manager, procedure=procedure, on_progress=on_progress,
+            timeout=timeout
+        )
 
     def __call__(self, *args, **kwargs) -> AbstractInvocation:
         name = self._generate_name()

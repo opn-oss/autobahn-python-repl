@@ -42,15 +42,12 @@ __author__ = 'Adam Jorgensen <adam.jorgensen.za@gmail.com>'
 class Publication(AbstractPublication):
     def __init__(self, publisher: AbstractPublisher,
                  args: Iterable, kwargs: Dict[str, Any]):
-        assert isinstance(publisher, AbstractPublisher)
-        loop = publisher.manager.session.manager.loop
-        self.__publisher = publisher
-        self.__args = args
-        self.__kwargs = kwargs
-        self.__result = None
-        self.__exception = None
+        super(Publication, self).__init__(
+            publisher=publisher, args=args, kwargs=kwargs
+        )
 
         def invoke(future: asyncio.Future):
+            loop = publisher.manager.session.manager.loop
             try:
                 result = future.result()
                 self.__future = asyncio.ensure_future(self.__invoke(), loop=loop)
@@ -58,38 +55,30 @@ class Publication(AbstractPublication):
                 print(e)
         publisher.manager.session.future.add_done_callback(invoke)
 
-    @property
-    def result(self):
-        return self.__result
-
-    @property
-    def exception(self):
-        return self.__exception
-
     async def __invoke(self):
         try:
             options = PublishOptions(
-                acknowledge=self.__publisher.acknowledge,
-                exclude_me=self.__publisher.exclude_me,
-                exclude=self.__publisher.exclude,
-                exclude_authid=self.__publisher.exclude_authid,
-                exclude_authrole=self.__publisher.exclude_authrole,
-                eligible=self.__publisher.eligible,
-                eligible_authid=self.__publisher.eligibile_authid,
-                eligible_authrole=self.__publisher.eligible_authrole,
-                retain=self.__publisher.retain
+                acknowledge=self._publisher.acknowledge,
+                exclude_me=self._publisher.exclude_me,
+                exclude=self._publisher.exclude,
+                exclude_authid=self._publisher.exclude_authid,
+                exclude_authrole=self._publisher.exclude_authrole,
+                eligible=self._publisher.eligible,
+                eligible_authid=self._publisher.eligibile_authid,
+                eligible_authrole=self._publisher.eligible_authrole,
+                retain=self._publisher.retain
             )
-            session = self.__publisher.manager.session.application_session
-            self.__result = session.publish(
-                topic=self.__publisher.topic,
-                *self.__args,
+            session = self._publisher.manager.session.application_session
+            self._result = session.publish(
+                topic=self._publisher.topic,
+                *self._args,
                 options=options,
-                **self.__kwargs
+                **self._kwargs
             )
-            if self.__result is not None and self.__publisher.acknowledge:
-                self.__result = await self.__result
+            if self._result is not None and self._publisher.acknowledge:
+                self._result = await self._result
         except Exception as e:
-            self.__exception = e
+            self._exception = e
 
     def __call__(self, *new_args, **new_kwargs) -> AbstractPublication:
         """
@@ -98,14 +87,14 @@ class Publication(AbstractPublication):
         :param new_kwargs:
         :return:
         """
-        args = deepcopy(self.__args)
+        args = deepcopy(self._args)
         args = [
             arg if new_arg == Keep else new_arg
             for arg, new_arg in zip(args, new_args)
         ]
-        kwargs = deepcopy(self.__kwargs)
+        kwargs = deepcopy(self._kwargs)
         kwargs.update(new_kwargs)
-        return self.__call(*args, **kwargs)
+        return self._publisher(*args, **kwargs)
 
 
 class Publisher(HasNames, AbstractPublisher):
@@ -120,58 +109,14 @@ class Publisher(HasNames, AbstractPublisher):
                  eligible_authid: Union[str, List[str]]=None,
                  eligible_authrole: Union[str, List[str]]=None,
                  retain: bool=None):
-        assert isinstance(manager, AbstractPublisherManager)
-        self.__manager = manager
-        self.__topic = topic
-        self.__acknowledge = acknowledge
-        self.__exclude_me = exclude_me
-        self.__exclude = exclude
-        self.__exclude_authid = exclude_authid
-        self.__exclude_authrole = exclude_authrole
-        self.__eligible = eligible
-        self.__eligible_authid = eligible_authid
-        self.__eligible_authrole = eligible_authrole
-        self.__retain = retain
-
-    @property
-    def manager(self) -> AbstractPublisherManager:
-        return self.__manager
-
-    @property
-    def topic(self) -> str:
-        return self.__topic
-
-    @property
-    def exclude_me(self) -> bool:
-        return self.__exclude_me
-
-    @property
-    def exclude(self) -> Union[int, List[int]]:
-        return self.__exclude
-
-    @property
-    def exclude_authid(self) -> Union[str, List[str]]:
-        return self.__exclude_authid
-
-    @property
-    def exclude_authrole(self) -> Union[str, List[str]]:
-        return self.__exclude_authrole
-
-    @property
-    def eligible(self) -> Union[int, List[int]]:
-        return self.__eligible
-
-    @property
-    def eligible_authid(self) -> Union[str, List[str]]:
-        return self.__eligible_authid
-
-    @property
-    def eligible_authrole(self) -> Union[str, List[str]]:
-        return self.__eligible_authrole
-
-    @property
-    def retain(self) -> bool:
-        return self.__retain
+        self.__init_has_names__()
+        super().__init__(
+            manager=manager, topic=topic, acknowledge=acknowledge,
+            exclude_me=exclude_me, exclude=exclude,
+            exclude_authid=exclude_authid, exclude_authrole=exclude_authrole,
+            eligible=eligible, eligible_authid=eligible_authid,
+            eligible_authrole=eligible_authrole, retain=retain
+        )
 
     def __call__(self, *args, **kwargs) -> AbstractPublication:
         name = self._generate_name()
