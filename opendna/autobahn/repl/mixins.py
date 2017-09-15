@@ -21,10 +21,25 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 ################################################################################
+from asyncio import AbstractEventLoop
+
 from decorator import decorator
 
 from opendna.autobahn.repl.abc import AbstractSession
 from opendna.autobahn.repl.utils import generate_name
+
+
+class HasLoop(object):
+    """
+    Mix-in providing read-only access to an AbstractEventLoop instance
+    """
+    def __init_has_loop__(self, loop: AbstractEventLoop):
+        assert isinstance(loop, AbstractEventLoop)
+        self._loop = loop
+
+    @property
+    def loop(self):
+        return self._loop
 
 
 class HasSession(object):
