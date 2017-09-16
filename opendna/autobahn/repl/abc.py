@@ -21,73 +21,146 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 ################################################################################
-from asyncio import AbstractEventLoop, Future
+import asyncio
+from asyncio import AbstractEventLoop
+from ssl import SSLContext
 from typing import Callable, Union, List, Iterable, Dict, Any, Optional
 
 from autobahn.wamp import ComponentConfig
+from autobahn.wamp.interfaces import ISerializer
+from autobahn.wamp.protocol import ApplicationSession
+
 
 __author__ = 'Adam Jorgensen <adam.jorgensen.za@gmail.com>'
 
 
-class AbstractSessionManager(object):
-
+class AbstractConnectionManager(object):
     @property
     def loop(self) -> AbstractEventLoop:
         raise NotImplementedError
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs) -> 'AbstractConnection':
         raise NotImplementedError
 
-    def __getitem__(self, item):
-        raise NotImplementedError
 
-    def __getattr__(self, item):
+class AbstractConnection(object):
+    def __init__(self, manager: AbstractConnectionManager, uri: str, realm: str,
+                 extra: dict=None, serializers: List[ISerializer]=None,
+                 ssl: Union[SSLContext, bool]=None, proxy: dict=None,
+                 headers: dict=None):
+        assert isinstance(manager, AbstractConnectionManager)
+        assert isinstance(uri, str)
+        assert realm is None or isinstance(realm, str)
+        assert extra is None or isinstance(extra, dict)
+        assert serializers is None or isinstance(serializers, list)
+        assert ssl is None or isinstance(ssl, (SSLContext, bool))
+        assert proxy is None or isinstance(proxy, dict)
+        assert headers is None or isinstance(headers, dict)
+        self._manager = manager
+        self._uri = uri
+        self._realm = realm
+        self._extra = extra
+        self._serializers = serializers
+        self._ssl = ssl
+        self._proxy = proxy
+        self._headers = headers
+
+    @property
+    def manager(self) -> AbstractConnectionManager:
+        return self._manager
+
+    @property
+    def uri(self):
+        return self._uri
+
+    @property
+    def realm(self):
+        return self._realm
+
+    @property
+    def extra(self):
+        return self._extra
+
+    @property
+    def serializers(self):
+        return self._serializers
+
+    @property
+    def ssl(self):
+        return self._ssl
+
+    @property
+    def proxy(self):
+        return self._proxy
+
+    @property
+    def headers(self):
+        return self._headers
+
+    def session(self, authmethod: str, authid: str=None,
+                authrole: str=None, authextra: dict=None, resumable: bool=None,
+                resume_session: int=None, resume_token: str=None,
+                *, name: str=None) -> 'AbstractSession':
         raise NotImplementedError
 
 
 class AbstractSession(object):
-
-    def __factory(self, config: ComponentConfig):
-        raise NotImplementedError
-
-    @property
-    def manager(self) -> AbstractSessionManager:
-        raise NotImplementedError
-
-    @property
-    def future(self) -> Future:
-        raise NotImplementedError
-
-    @property
-    def uri(self):
-        raise NotImplementedError
-
-    @property
-    def realm(self):
-        raise NotImplementedError
+    def __init__(self, connection: AbstractConnection,
+                 authmethod: str='anonymous', authid: str=None,
+                 authrole: str=None, authextra: dict=None, resumable: bool=None,
+                 resume_session: int=None, resume_token: str=None):
+        self._connection = connection
+        self._authmethod = authmethod
+        self._authid = authid
+        self._authrole = authrole
+        self._authextra = authextra
+        self._resumable = resumable
+        self._resume_session = resume_session
+        self._resume_token = resume_token
+        self._application_session = None
+        self._future: asyncio.Future = connection.manager.loop.create_future()
 
     @property
-    def extra(self):
-        raise NotImplementedError
+    def connection(self) -> AbstractConnection:
+        return self._connection
 
     @property
-    def serializers(self):
-        raise NotImplementedError
+    def authmethod(self) -> str:
+        return self._authmethod
 
     @property
-    def ssl(self):
-        raise NotImplementedError
+    def authid(self) -> Optional[str]:
+        return self._authid
 
     @property
-    def proxy(self):
-        raise NotImplementedError
+    def authrole(self) -> Optional[str]:
+        return self._authrole
 
     @property
-    def headers(self):
-        raise NotImplementedError
+    def authextra(self) -> Optional[dict]:
+        return self._authextra
 
     @property
-    def application_session(self):
+    def resumable(self) -> Optional[bool]:
+        return self._resumable
+
+    @property
+    def resume_session(self) -> Optional[int]:
+        return self._resume_session
+
+    @property
+    def resume_token(self) -> Optional[str]:
+        return self._resume_token
+
+    @property
+    def future(self) -> asyncio.Future:
+        return self._future
+
+    @property
+    def application_session(self) -> ApplicationSession:
+        return self._application_session
+
+    def _factory(self, config: ComponentConfig) -> ApplicationSession:
         raise NotImplementedError
 
     @property
