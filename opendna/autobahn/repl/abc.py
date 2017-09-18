@@ -28,7 +28,6 @@ from typing import Callable, Union, List, Iterable, Dict, Any, Optional
 
 from autobahn.wamp import ComponentConfig
 from autobahn.wamp.interfaces import ISerializer
-from autobahn.wamp.protocol import ApplicationSession
 
 
 __author__ = 'Adam Jorgensen <adam.jorgensen.za@gmail.com>'
@@ -157,10 +156,10 @@ class AbstractSession(object):
         return self._future
 
     @property
-    def application_session(self) -> ApplicationSession:
+    def application_session(self):
         return self._application_session
 
-    def _factory(self, config: ComponentConfig) -> ApplicationSession:
+    def _factory(self, config: ComponentConfig):
         raise NotImplementedError
 
     @property
@@ -256,7 +255,7 @@ class AbstractInvocation(object):
     def _default_on_progress(self, value):
         self._progress.append(value)
 
-    async def __invoke(self):
+    async def _invoke(self):
         raise NotImplementedError
 
     def __call__(self, *args, **kwargs):

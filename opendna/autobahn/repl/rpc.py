@@ -48,15 +48,15 @@ class Invocation(AbstractInvocation):
         super(Invocation, self).__init__(call=call, args=args, kwargs=kwargs)
 
         def invoke(future: asyncio.Future):
-            loop = call.manager.session.manager.loop
+            loop = call.manager.session.connection.manager.loop
             try:
                 result = future.result()
-                self.__future = asyncio.ensure_future(self.__invoke(), loop=loop)
+                self._future = asyncio.ensure_future(self._invoke(), loop=loop)
             except Exception as e:
                 print(e)
         call.manager.session.future.add_done_callback(invoke)
 
-    async def __invoke(self):
+    async def _invoke(self):
         try:
             options = CallOptions(
                 on_progress=(
@@ -66,14 +66,14 @@ class Invocation(AbstractInvocation):
                 timeout=self._call.timeout
             )
             session = self._call.manager.session.application_session
-            self.__result = await session.call(
+            self._result = await session.call(
                 self._call.procedure,
                 *self._args,
                 options=options,
                 **self._kwargs
             )
         except Exception as e:
-            self.__exception = e
+            self._exception = e
 
     def __call__(self, *new_args, **new_kwargs) -> AbstractInvocation:
         """
@@ -104,6 +104,7 @@ class Call(HasNames, AbstractCall):
 
     def __call__(self, *args, **kwargs) -> AbstractInvocation:
         name = self._generate_name()
+        print(f'Invoking {self.procedure} with name {name}')
         # TODO: Allow custom Invocation class
         invocation = Invocation(call=self, args=args, kwargs=kwargs)
         invocation_id = id(invocation)

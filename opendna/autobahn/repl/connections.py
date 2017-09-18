@@ -55,7 +55,7 @@ class Connection(HasNames, AbstractConnection):
                 resume_session: int=None, resume_token: str=None,
                 *, name: str=None) -> AbstractSession:
         print(
-            f'Generating {authmethod} session to {self._realm}@{self._url} '
+            f'Generating {authmethod} session to {self._realm}@{self._uri} '
             f'with name {name}'
         )
         session = Session(
