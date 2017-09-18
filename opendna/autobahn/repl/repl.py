@@ -27,7 +27,7 @@ import txaio
 from opendna.common.decorators import with_uvloop_if_possible
 from ptpython.repl import embed, run_config, PythonRepl
 
-from opendna.autobahn.repl.sessions import SessionManager, Session
+from opendna.autobahn.repl.connections import ConnectionManager
 
 
 @asyncio.coroutine
@@ -35,8 +35,7 @@ def _start_repl(loop):
     yield from embed(
         globals={},
         locals={
-            # TODO: SessionManager class and Session class should be customisable using command-line arguments or environment variables
-            'sessions': SessionManager(loop, Session),
+            'connections': ConnectionManager(loop),
         },
         title='AutoBahn-Python REPL',
         return_asyncio_coroutine=True, patch_stdout=True
