@@ -47,7 +47,7 @@ class Publication(AbstractPublication):
         )
 
         def invoke(future: asyncio.Future):
-            loop = publisher.manager.session.manager.loop
+            loop = publisher.manager.session.connection.manager.loop
             try:
                 result = future.result()
                 self.__future = asyncio.ensure_future(self.__invoke(), loop=loop)
