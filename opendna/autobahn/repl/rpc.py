@@ -160,4 +160,6 @@ class Register(AbstractRegister):
 
 
 class RegisterManager(HasSession, HasNames, AbstractRegisterManager):
-    pass
+    def __init__(self, session: AbstractSession):
+        self.__init_has_session__(session)
+        self.__init_has_names__()

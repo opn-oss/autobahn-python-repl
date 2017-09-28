@@ -172,4 +172,6 @@ class Subscribe(AbstractSubscribe):
 
 
 class SubscribeManager(HasSession, HasNames, AbstractSubscribeManager):
-    pass
+    def __init__(self, session: AbstractSession):
+        self.__init_has_session__(session)
+        self.__init_has_names__()
