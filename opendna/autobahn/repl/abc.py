@@ -262,7 +262,26 @@ class AbstractInvocation(object):
         raise NotImplementedError
 
 
+class AbstractRegisterManager(object):
+    @property
+    def session(self) -> AbstractSession:
+        raise NotImplementedError
+
+    def __call__(self, *args, **kwargs) -> 'AbstractRegister':
+        raise NotImplementedError
+
+    def __getitem__(self, item) -> 'AbstractRegister':
+        raise NotImplementedError
+
+    def __getattr__(self, item) -> 'AbstractRegister':
+        raise NotImplementedError
+
+
 class AbstractRegister(object):
+    pass
+
+
+class AbstractRegistration(object):
     pass
 
 
@@ -379,12 +398,31 @@ class AbstractPublication(object):
     def exception(self) -> Exception:
         return self._exception
 
-    async def __invoke(self):
+    async def _invoke(self):
         raise NotImplementedError
 
     def __call__(self, *args, **kwargs) -> 'AbstractPublication':
         raise NotImplementedError
 
 
+class AbstractSubscribeManager(object):
+    @property
+    def session(self) -> AbstractSession:
+        raise NotImplementedError
+
+    def __call__(self, *args, **kwargs) -> 'AbstractSubscribe':
+        raise NotImplementedError
+
+    def __getitem__(self, item) -> 'AbstractSubscribe':
+        raise NotImplementedError
+
+    def __getattr__(self, item) -> 'AbstractSubscribe':
+        raise NotImplementedError
+
+
 class AbstractSubscribe(object):
+    pass
+
+
+class AbstractSubscription(object):
     pass

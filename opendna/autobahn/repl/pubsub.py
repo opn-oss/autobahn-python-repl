@@ -31,7 +31,10 @@ from opendna.autobahn.repl.abc import (
     AbstractPublication,
     AbstractPublisher,
     AbstractPublisherManager,
-    AbstractSession
+    AbstractSession,
+    AbstractSubscription,
+    AbstractSubscribe,
+    AbstractSubscribeManager
 )
 from opendna.autobahn.repl.mixins import HasNames, HasSession
 from opendna.autobahn.repl.utils import Keep
@@ -50,12 +53,12 @@ class Publication(AbstractPublication):
             loop = publisher.manager.session.connection.manager.loop
             try:
                 result = future.result()
-                self.__future = asyncio.ensure_future(self.__invoke(), loop=loop)
+                self._future = asyncio.ensure_future(self._invoke(), loop=loop)
             except Exception as e:
                 print(e)
         publisher.manager.session.future.add_done_callback(invoke)
 
-    async def __invoke(self):
+    async def _invoke(self):
         try:
             options = PublishOptions(
                 acknowledge=self._publisher.acknowledge,
@@ -127,7 +130,7 @@ class Publisher(HasNames, AbstractPublisher):
         return publication
 
 
-class PublisherManager(HasNames, HasSession, AbstractPublisherManager):
+class PublisherManager(HasSession, HasSession, AbstractPublisherManager):
 
     def __init__(self, session: AbstractSession):
         self.__init_has_names__()
@@ -158,3 +161,15 @@ class PublisherManager(HasNames, HasSession, AbstractPublisherManager):
         self._items[publisher_id] = publisher
         self._names__items[name] = publisher_id
         return publisher
+
+
+class Subscription(AbstractSubscription):
+    pass
+
+
+class Subscribe(AbstractSubscribe):
+    pass
+
+
+class SubscribeManager(HasSession, HasNames, AbstractSubscribeManager):
+    pass

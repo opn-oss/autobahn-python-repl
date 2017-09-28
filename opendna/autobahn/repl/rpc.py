@@ -31,7 +31,10 @@ from opendna.autobahn.repl.abc import (
     AbstractInvocation,
     AbstractCall,
     AbstractCallManager,
-    AbstractSession
+    AbstractSession,
+    AbstractRegister,
+    AbstractRegisterManager,
+    AbstractRegistration
 )
 from opendna.autobahn.repl.mixins import HasSession, HasNames
 from opendna.autobahn.repl.utils import Keep
@@ -146,3 +149,15 @@ class CallManager(HasSession, HasNames, AbstractCallManager):
         self._items[call_id] = call
         self._names__items[name] = call_id
         return call
+
+
+class Registration(AbstractRegistration):
+    pass
+
+
+class Register(AbstractRegister):
+    pass
+
+
+class RegisterManager(HasSession, HasNames, AbstractRegisterManager):
+    pass
