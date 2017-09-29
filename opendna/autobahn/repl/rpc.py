@@ -22,6 +22,8 @@
 # SOFTWARE.
 ################################################################################
 import asyncio
+
+from autobahn.wamp.types import IRegistration
 from datetime import datetime
 from collections import namedtuple
 from copy import deepcopy
@@ -161,6 +163,8 @@ class Registration(HasNames, AbstractRegistration):
         super().__init__(manager, procedure, endpoint, prefix,
                          register_options_kwargs)
         self.__init_has_names__()
+        self._future = None
+        self._registration: IRegistration = None
 
         def invoke(future: asyncio.Future):
             loop = manager.session.connection.manager.loop
@@ -170,6 +174,16 @@ class Registration(HasNames, AbstractRegistration):
             except Exception as e:
                 print(e)
         manager.session.future.add_done_callback(invoke)
+
+    @property
+    def registration(self) -> IRegistration:
+        return self._registration
+
+    def unregister(self):
+        if self._registration is None:
+            raise Exception(f'{self._procedure} is not registered yet')
+        loop = self._manager.session.connection.manager.loop
+        asyncio.ensure_future(self._unregister(), loop=loop)
 
     def __call__(self,
                  procedure: str=None,
@@ -184,6 +198,12 @@ class Registration(HasNames, AbstractRegistration):
             prefix or self._prefix,
             **register_options_kwargs
         )
+
+    async def _unregister(self):
+        try:
+            await self._registration.unregister()
+        except Exception as e:
+            self._exception = e
 
     async def _register(self):
         try:
