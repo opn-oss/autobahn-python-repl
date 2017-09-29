@@ -31,7 +31,7 @@ from opendna.autobahn.repl.abc import (
     AbstractConnection
 )
 from opendna.autobahn.repl.pubsub import PublisherManager, SubscribeManager
-from opendna.autobahn.repl.rpc import CallManager, RegisterManager
+from opendna.autobahn.repl.rpc import CallManager, RegistrationManager
 from opendna.autobahn.repl.wamp import REPLApplicationSession
 
 __author__ = 'Adam Jorgensen <adam.jorgensen.za@gmail.com>'
@@ -49,7 +49,7 @@ class Session(AbstractSession):
         )
         # TODO: Support custom manager classes
         self._call_manager = CallManager(self)
-        self._register_manager = RegisterManager(self)
+        self._register_manager = RegistrationManager(self)
         self._publisher_manager = PublisherManager(self)
         self._subscribe_manager = SubscribeManager(self)
         # TODO: Support custom application runner class?

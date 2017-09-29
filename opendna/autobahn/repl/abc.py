@@ -26,9 +26,9 @@ from asyncio import AbstractEventLoop
 from ssl import SSLContext
 from typing import Callable, Union, List, Iterable, Dict, Any, Optional
 
-from autobahn.wamp import ComponentConfig
-from autobahn.wamp.interfaces import ISerializer
-
+from autobahn.wamp import ComponentConfig, RegisterOptions
+from autobahn.wamp.types import IRegistration
+from autobahn.wamp.interfaces import ISerializer, ISession
 
 __author__ = 'Adam Jorgensen <adam.jorgensen.za@gmail.com>'
 
@@ -156,7 +156,7 @@ class AbstractSession(object):
         return self._future
 
     @property
-    def application_session(self):
+    def application_session(self) -> ISession:
         return self._application_session
 
     def _factory(self, config: ComponentConfig):
@@ -213,7 +213,7 @@ class AbstractCall(object):
         return self._procedure
 
     @property
-    def on_progress(self) -> Callable:
+    def on_progress(self) -> Optional[Callable]:
         return self._on_progress
 
     @property
@@ -262,27 +262,70 @@ class AbstractInvocation(object):
         raise NotImplementedError
 
 
-class AbstractRegisterManager(object):
+class AbstractRegistrationManager(object):
     @property
     def session(self) -> AbstractSession:
         raise NotImplementedError
 
-    def __call__(self, *args, **kwargs) -> 'AbstractRegister':
+    def __call__(self, *args, **kwargs) -> 'AbstractRegistration':
         raise NotImplementedError
 
-    def __getitem__(self, item) -> 'AbstractRegister':
+    def __getitem__(self, item) -> 'AbstractRegistration':
         raise NotImplementedError
 
-    def __getattr__(self, item) -> 'AbstractRegister':
+    def __getattr__(self, item) -> 'AbstractRegistration':
         raise NotImplementedError
-
-
-class AbstractRegister(object):
-    pass
 
 
 class AbstractRegistration(object):
-    pass
+    def __init__(self, manager: AbstractRegistrationManager, procedure: str,
+                 endpoint: Callable=None, prefix: str=None,
+                 register_options_kwargs: dict=None):
+        assert isinstance(manager, AbstractRegistrationManager)
+        self._manager = manager
+        self._procedure = procedure
+        self._endpoint = endpoint
+        self._prefix = prefix
+        self._register_options_kwargs = register_options_kwargs
+        self._registration = None
+        self._exception = None
+
+    @property
+    def manager(self) -> AbstractRegistrationManager:
+        return self._manager
+
+    @property
+    def procedure(self) -> str:
+        return self._procedure
+
+    @property
+    def endpoint(self) -> Optional[Callable]:
+        return self._endpoint
+
+    @property
+    def prefix(self) -> Optional[str]:
+        return self._prefix
+
+    @property
+    def register_options_kwargs(self) -> Optional[dict]:
+        return self._register_options_kwargs
+
+    @property
+    def registration(self) -> Optional[IRegistration]:
+        return self._registration
+
+    @property
+    def exception(self) -> Optional[Exception]:
+        return self._exception
+
+    async def _register(self):
+        raise NotImplementedError
+
+    async def _endpoint(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def __call__(self, *args, **kwargs):
+        raise NotImplementedError
 
 
 class AbstractPublisherManager(object):
