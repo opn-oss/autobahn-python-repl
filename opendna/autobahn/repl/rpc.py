@@ -48,10 +48,11 @@ __author__ = 'Adam Jorgensen <adam.jorgensen.za@gmail.com>'
 class Invocation(HasName, AbstractInvocation):
 
     def __init__(self,
-                 call: AbstractCall,
+                 call: Union[ManagesNames, AbstractCall],
                  args: Iterable,
                  kwargs: Dict[str, Any]):
         super(Invocation, self).__init__(call=call, args=args, kwargs=kwargs)
+        self.__init_has_name__(call)
 
         def invoke(future: asyncio.Future):
             loop = call.manager.session.connection.manager.loop
@@ -176,8 +177,8 @@ class CallManager(HasSession, ManagesNames, AbstractCallManager):
 class Registration(HasName, ManagesNames, AbstractRegistration):
     Hit = namedtuple('Hit', ('timestamp', 'args', 'kwargs'))
 
-    def __init__(self, manager: 'RegistrationManager', procedure: str,
-                 endpoint: Callable = None, prefix: str = None,
+    def __init__(self, manager: Union[ManagesNames, AbstractRegistrationManager],
+                 procedure: str, endpoint: Callable = None, prefix: str = None,
                  register_options_kwargs: dict = None):
         super().__init__(manager, procedure, endpoint, prefix,
                          register_options_kwargs)
