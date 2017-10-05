@@ -32,13 +32,13 @@ from opendna.autobahn.repl.abc import (
     AbstractConnectionManager,
     AbstractSession
 )
-from opendna.autobahn.repl.mixins import HasNames, HasLoop
+from opendna.autobahn.repl.mixins import ManagesNames, HasLoop
 from opendna.autobahn.repl.sessions import Session
 
 __author__ = 'Adam Jorgensen <adam.jorgensen.za@gmail.com>'
 
 
-class Connection(HasNames, AbstractConnection):
+class Connection(ManagesNames, AbstractConnection):
     def __init__(self, manager: AbstractConnectionManager, uri: str, realm: str,
                  extra: dict=None, serializers: List[ISerializer]=None,
                  ssl: Union[SSLContext, bool]=None, proxy: dict=None,
@@ -47,9 +47,9 @@ class Connection(HasNames, AbstractConnection):
             manager=manager, uri=uri, realm=realm, extra=extra,
             serializers=serializers, ssl=ssl, proxy=proxy, headers=headers
         )
-        self.__init_has_names__()
+        self.__init_manages_names__()
 
-    @HasNames.with_name
+    @ManagesNames.with_name
     def session(self, authmethod: str='anonymous', authid: str=None,
                 authrole: str=None, authextra: dict=None, resumable: bool=None,
                 resume_session: int=None, resume_token: str=None,
@@ -69,14 +69,14 @@ class Connection(HasNames, AbstractConnection):
         return session
 
 
-class ConnectionManager(HasNames, HasLoop, AbstractConnectionManager):
+class ConnectionManager(ManagesNames, HasLoop, AbstractConnectionManager):
 
     def __init__(self, loop: AbstractEventLoop):
         super().__init__()
-        self.__init_has_names__()
+        self.__init_manages_names__()
         self.__init_has_loop__(loop)
 
-    @HasNames.with_name
+    @ManagesNames.with_name
     def __call__(self, uri: str, realm: str=None, extra=None,
                  serializers=None, ssl=None, proxy=None, headers=None, *,
                  name: str=None) -> AbstractConnection:

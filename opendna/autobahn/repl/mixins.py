@@ -57,9 +57,9 @@ class HasSession(object):
 
 class HasNamesMeta(type):
     """
-    Meta-class used by HasNames to provide the with_name decorator
+    Meta-class used by ManagesNames to provide the with_name decorator
     """
-    def __with_name(cls, f, self: 'HasNames', *args, **kwargs):
+    def __with_name(cls, f, self: 'ManagesNames', *args, **kwargs):
         kwargs['name'] = self._generate_name(kwargs.get('name'))
         return f(self, *args, **kwargs)
 
@@ -67,20 +67,24 @@ class HasNamesMeta(type):
         return decorator(cls.__with_name, f)
 
 
-class HasNames(object, metaclass=HasNamesMeta):
+class ManagesNames(object, metaclass=HasNamesMeta):
     """
     Mix-in providing item and attribute access to specific data stored
-    the class instance. Also provides with HasNames.with_name decorator
+    the class instance. Also provides with ManagesNames.with_name decorator
     """
-    def __init_has_names__(self):
+    def __init_manages_names__(self):
         self._items = {}
         self._names__items = {}
+        self._items__names = {}
 
     def _generate_name(self, name=None):
         name = generate_name(name)
         while name in self:
             name = generate_name(length=len(name) + 1)
         return name
+
+    def name_for(self, item):
+        return self._items__names[item]
 
     def __getitem__(self, item):
         item = self._names__items.get(item, item)
@@ -93,4 +97,14 @@ class HasNames(object, metaclass=HasNamesMeta):
         return item in self._items or item in self._names__items
 
 
+class HasName(object):
+    """
+    Mix-in providing access to the name for a class instance managed by the
+    ManagesNames mix-in
+    """
+    def __init_has_name__(self, name_provider: ManagesNames):
+        self._name_provider = name_provider
 
+    @property
+    def name(self):
+        return self._name_provider.name_for(self)

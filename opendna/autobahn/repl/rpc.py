@@ -29,7 +29,7 @@ from collections import namedtuple
 from copy import deepcopy
 
 from autobahn.wamp import CallOptions, RegisterOptions
-from typing import Callable, Union, Any, Dict, Iterable
+from typing import Callable, Union, Any, Dict, Iterable, Optional
 
 from opendna.autobahn.repl.abc import (
     AbstractInvocation,
@@ -39,13 +39,13 @@ from opendna.autobahn.repl.abc import (
     AbstractRegistrationManager,
     AbstractRegistration
 )
-from opendna.autobahn.repl.mixins import HasSession, HasNames
+from opendna.autobahn.repl.mixins import HasSession, ManagesNames, HasName
 from opendna.autobahn.repl.utils import Keep
 
 __author__ = 'Adam Jorgensen <adam.jorgensen.za@gmail.com>'
 
 
-class Invocation(AbstractInvocation):
+class Invocation(HasName, AbstractInvocation):
 
     def __init__(self,
                  call: AbstractCall,
@@ -62,23 +62,30 @@ class Invocation(AbstractInvocation):
                 print(e)
         call.manager.session.future.add_done_callback(invoke)
 
+    def _default_on_progress(self, value):
+        print(f'Invocation of {self._call.procedure} with name {self.name} has progress')
+        super()._default_on_progress(value)
+        if callable(self._call.on_progress):
+            self._call.on_progress(value)
+
     async def _invoke(self):
         try:
+            procedure = self._call.procedure
             options = CallOptions(
-                on_progress=(
-                    self._call.on_progress if callable(self._call.on_progress)
-                    else self._default_on_progress
-                ),
+                on_progress=self._default_on_progress,
                 timeout=self._call.timeout
             )
             session = self._call.manager.session.application_session
+            print(f'Invocation of {procedure} with name {self.name} starting')
             self._result = await session.call(
-                self._call.procedure,
+                procedure,
                 *self._args,
                 options=options,
                 **self._kwargs
             )
+            print(f'Invocation of {procedure} with name {self.name} succeeded')
         except Exception as e:
+            print(f'Invocation of {procedure} with name {self.name} failed')
             self._exception = e
 
     def __call__(self, *new_args, **new_kwargs) -> AbstractInvocation:
@@ -98,15 +105,20 @@ class Invocation(AbstractInvocation):
         return self._call(*args, **kwargs)
 
 
-class Call(HasNames, AbstractCall):
+class Call(ManagesNames, AbstractCall):
     def __init__(self, manager: AbstractCallManager,
                  procedure: str, on_progress: Callable=None,
                  timeout: Union[int, float, None]=None):
-        self.__init_has_names__()
+        self.__init_manages_names__()
         super().__init__(
             manager=manager, procedure=procedure, on_progress=on_progress,
             timeout=timeout
         )
+
+    def name_for(self, item):
+        # TODO: Allow custom Invocation class
+        assert isinstance(item, Invocation)
+        return super().name_for(id(item))
 
     def __call__(self, *args, **kwargs) -> AbstractInvocation:
         name = self._generate_name()
@@ -115,16 +127,22 @@ class Call(HasNames, AbstractCall):
         invocation = Invocation(call=self, args=args, kwargs=kwargs)
         invocation_id = id(invocation)
         self._items[invocation_id] = invocation
+        self._items__names[invocation_id] = name
         self._names__items[name] = invocation_id
         return invocation
 
 
-class CallManager(HasSession, HasNames, AbstractCallManager):
+class CallManager(HasSession, ManagesNames, AbstractCallManager):
     def __init__(self, session: AbstractSession):
         self.__init_has_session__(session)
-        self.__init_has_names__()
+        self.__init_manages_names__()
 
-    @HasNames.with_name
+    def name_for(self, item):
+        # TODO: Allow custom Call class
+        assert isinstance(item, Call)
+        return super().name_for(id(item))
+
+    @ManagesNames.with_name
     def __call__(self,
                  procedure: str,
                  on_progress: Callable=None,
@@ -150,21 +168,23 @@ class CallManager(HasSession, HasNames, AbstractCallManager):
         )
         call_id = id(call)
         self._items[call_id] = call
+        self._items__names[call_id] = name
         self._names__items[name] = call_id
         return call
 
 
-class Registration(HasNames, AbstractRegistration):
+class Registration(HasName, ManagesNames, AbstractRegistration):
     Hit = namedtuple('Hit', ('timestamp', 'args', 'kwargs'))
 
-    def __init__(self, manager: AbstractRegistrationManager, procedure: str,
+    def __init__(self, manager: 'RegistrationManager', procedure: str,
                  endpoint: Callable = None, prefix: str = None,
                  register_options_kwargs: dict = None):
         super().__init__(manager, procedure, endpoint, prefix,
                          register_options_kwargs)
-        self.__init_has_names__()
+        self.__init_manages_names__()
+        self.__init_has_name__(manager)
         self._future = None
-        self._registration: IRegistration = None
+        self._registration: Optional[IRegistration] = None
 
         def invoke(future: asyncio.Future):
             loop = manager.session.connection.manager.loop
@@ -176,7 +196,7 @@ class Registration(HasNames, AbstractRegistration):
         manager.session.future.add_done_callback(invoke)
 
     @property
-    def registration(self) -> IRegistration:
+    def registration(self) -> Optional[IRegistration]:
         return self._registration
 
     def unregister(self):
@@ -201,21 +221,27 @@ class Registration(HasNames, AbstractRegistration):
 
     async def _unregister(self):
         try:
+            print(f'Deregistration of {self._procedure} with name {self.name} starting')
             await self._registration.unregister()
+            print(f'Deregistration of {self._procedure} with name {self.name} succeeded')
         except Exception as e:
+            print(f'Deregistration of {self._procedure} with name {self.name} failed')
             self._exception = e
 
     async def _register(self):
         try:
             options = RegisterOptions(**self._register_options_kwargs)
             session = self._manager.session.application_session
+            print(f'Registration of {self._procedure} with name {self.name} starting')
             self._registration = await session.register(
                 endpoint=self._endpoint,
                 procedure=self._procedure,
                 options=options,
                 prefix=self._prefix
             )
+            print(f'Registration of {self._procedure} with name {self.name} succeeded')
         except Exception as e:
+            print(f'Registration of {self._procedure} with name {self.name} failed')
             self._exception = e
 
     async def _endpoint(self, *args, **kwargs):
@@ -224,18 +250,23 @@ class Registration(HasNames, AbstractRegistration):
         self._items.append(self.Hit(now, args, kwargs))
         hit_id = len(self._items) - 1
         self._names__items[name] = hit_id
-        print(f'{self._procedure} hit at {now} with ID {hit_id} and '
-              f'name {name} stored')
+        print(f'{self._procedure} with name {self.name} hit at {now} with '
+              f'ID {hit_id} and hit name {name} stored')
         if callable(self._endpoint):
             return await self._endpoint(*args, **kwargs)
 
 
-class RegistrationManager(HasSession, HasNames, AbstractRegistrationManager):
+class RegistrationManager(HasSession, ManagesNames, AbstractRegistrationManager):
     def __init__(self, session: AbstractSession):
         self.__init_has_session__(session)
-        self.__init_has_names__()
+        self.__init_manages_names__()
 
-    @HasNames.with_name
+    def name_for(self, item):
+        # TODO: Allow custom Registration class
+        assert isinstance(item, Registration)
+        return super().name_for(id(item))
+
+    @ManagesNames.with_name
     def __call__(self,
                  procedure: str,
                  endpoint: Callable=None,
@@ -243,11 +274,13 @@ class RegistrationManager(HasSession, HasNames, AbstractRegistrationManager):
                  *, name: str=None,
                  **register_options_kwargs) -> AbstractRegistration:
         print(f'Generating register for {procedure} with name {name}')
+        # TODO: Allow custom Registration class
         register = Registration(
             manager=self, procedure=procedure, endpoint=endpoint, prefix=prefix,
             register_options_kwargs=register_options_kwargs
         )
         register_id = id(register)
         self._items[register_id] = register
+        self._items__names[register_id] = name
         self._names__items[name] = register_id
         return register

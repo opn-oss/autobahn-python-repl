@@ -36,7 +36,7 @@ from opendna.autobahn.repl.abc import (
     AbstractSubscribe,
     AbstractSubscribeManager
 )
-from opendna.autobahn.repl.mixins import HasNames, HasSession
+from opendna.autobahn.repl.mixins import ManagesNames, HasSession
 from opendna.autobahn.repl.utils import Keep
 
 __author__ = 'Adam Jorgensen <adam.jorgensen.za@gmail.com>'
@@ -100,7 +100,7 @@ class Publication(AbstractPublication):
         return self._publisher(*args, **kwargs)
 
 
-class Publisher(HasNames, AbstractPublisher):
+class Publisher(ManagesNames, AbstractPublisher):
     def __init__(self, manager: AbstractPublisherManager,
                  topic: str,
                  acknowledge: bool=None,
@@ -112,7 +112,7 @@ class Publisher(HasNames, AbstractPublisher):
                  eligible_authid: Union[str, List[str]]=None,
                  eligible_authrole: Union[str, List[str]]=None,
                  retain: bool=None):
-        self.__init_has_names__()
+        self.__init_manages_names__()
         super().__init__(
             manager=manager, topic=topic, acknowledge=acknowledge,
             exclude_me=exclude_me, exclude=exclude,
@@ -136,7 +136,7 @@ class PublisherManager(HasSession, HasSession, AbstractPublisherManager):
         self.__init_has_names__()
         self.__init_has_session__(session)
 
-    @HasNames.with_name
+    @ManagesNames.with_name
     def __call__(self,
                  topic: str,
                  acknowledge: bool=None,
@@ -171,7 +171,7 @@ class Subscribe(AbstractSubscribe):
     pass
 
 
-class SubscribeManager(HasSession, HasNames, AbstractSubscribeManager):
+class SubscribeManager(HasSession, ManagesNames, AbstractSubscribeManager):
     def __init__(self, session: AbstractSession):
         self.__init_has_session__(session)
-        self.__init_has_names__()
+        self.__init_manages_names__()
