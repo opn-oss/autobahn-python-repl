@@ -36,18 +36,19 @@ from opendna.autobahn.repl.abc import (
     AbstractSubscribe,
     AbstractSubscribeManager
 )
-from opendna.autobahn.repl.mixins import ManagesNames, HasSession
+from opendna.autobahn.repl.mixins import ManagesNames, HasSession, HasName
 from opendna.autobahn.repl.utils import Keep
 
 __author__ = 'Adam Jorgensen <adam.jorgensen.za@gmail.com>'
 
 
 class Publication(AbstractPublication):
-    def __init__(self, publisher: AbstractPublisher,
+    def __init__(self, publisher: Uniom[MaagesNames, AbstractPublisher],
                  args: Iterable, kwargs: Dict[str, Any]):
         super(Publication, self).__init__(
             publisher=publisher, args=args, kwargs=kwargs
         )
+        self.__init_has_name__(publisher)
 
         def invoke(future: asyncio.Future):
             loop = publisher.manager.session.connection.manager.loop
@@ -59,6 +60,7 @@ class Publication(AbstractPublication):
         publisher.manager.session.future.add_done_callback(invoke)
 
     async def _invoke(self):
+        topic = self._publisher.topic
         try:
             options = PublishOptions(
                 acknowledge=self._publisher.acknowledge,
@@ -72,15 +74,18 @@ class Publication(AbstractPublication):
                 retain=self._publisher.retain
             )
             session = self._publisher.manager.session.application_session
+            print(f'Publication to {topic} with name {self.name} starting')
             self._result = session.publish(
-                topic=self._publisher.topic,
+                topic=topic,
                 *self._args,
                 options=options,
                 **self._kwargs
             )
             if self._result is not None and self._publisher.acknowledge:
                 self._result = await self._result
+            print(f'Publication to {topic} with name {self.name} succeeded')
         except Exception as e:
+            print(f'Publication to {topic} with name {self.name} failed')
             self._exception = e
 
     def __call__(self, *new_args, **new_kwargs) -> AbstractPublication:
@@ -100,8 +105,8 @@ class Publication(AbstractPublication):
         return self._publisher(*args, **kwargs)
 
 
-class Publisher(ManagesNames, AbstractPublisher):
-    def __init__(self, manager: AbstractPublisherManager,
+class Publisher(HasName, ManagesNames, AbstractPublisher):
+    def __init__(self, manager: Union[ManagesNames, AbstractPublisherManager],
                  topic: str,
                  acknowledge: bool=None,
                  exclude_me: bool=None,
@@ -112,7 +117,6 @@ class Publisher(ManagesNames, AbstractPublisher):
                  eligible_authid: Union[str, List[str]]=None,
                  eligible_authrole: Union[str, List[str]]=None,
                  retain: bool=None):
-        self.__init_manages_names__()
         super().__init__(
             manager=manager, topic=topic, acknowledge=acknowledge,
             exclude_me=exclude_me, exclude=exclude,
@@ -120,21 +124,35 @@ class Publisher(ManagesNames, AbstractPublisher):
             eligible=eligible, eligible_authid=eligible_authid,
             eligible_authrole=eligible_authrole, retain=retain
         )
+        self.__init_has_name__(manager)
+        self.__init_manages_names__()
+
+    def name_for(self, item):
+        # TODO: Allow custom Publication class
+        assert isinstance(item, Publication)
+        return super().name_for(id(item))
 
     def __call__(self, *args, **kwargs) -> AbstractPublication:
         name = self._generate_name()
+        # TODO: Allow custom Publication class
         publication = Publication(publisher=self, args=args, kwargs=kwargs)
         publication_id = id(publication)
         self._items[publication_id] = publication
+        self._items__names[publication_id] = name
         self._names__items[name] = publication_id
         return publication
 
 
-class PublisherManager(HasSession, HasSession, AbstractPublisherManager):
+class PublisherManager(ManagesNames, HasSession, AbstractPublisherManager):
 
     def __init__(self, session: AbstractSession):
-        self.__init_has_names__()
+        self.__init_manages_names__()
         self.__init_has_session__(session)
+
+    def name_for(self, item):
+        # TODO: Allow custom Publisher. class
+        assert isinstance(item, Publisher)
+        return super().name_for(id(item))
 
     @ManagesNames.with_name
     def __call__(self,
@@ -159,6 +177,7 @@ class PublisherManager(HasSession, HasSession, AbstractPublisherManager):
         )
         publisher_id = id(publisher)
         self._items[publisher_id] = publisher
+        self._items__names[publisher_id] = name
         self._names__items[name] = publisher_id
         return publisher
 

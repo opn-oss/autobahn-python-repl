@@ -70,8 +70,8 @@ class Invocation(HasName, AbstractInvocation):
             self._call.on_progress(value)
 
     async def _invoke(self):
+        procedure = self._call.procedure
         try:
-            procedure = self._call.procedure
             options = CallOptions(
                 on_progress=self._default_on_progress,
                 timeout=self._call.timeout

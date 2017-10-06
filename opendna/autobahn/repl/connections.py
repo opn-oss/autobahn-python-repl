@@ -32,22 +32,29 @@ from opendna.autobahn.repl.abc import (
     AbstractConnectionManager,
     AbstractSession
 )
-from opendna.autobahn.repl.mixins import ManagesNames, HasLoop
+from opendna.autobahn.repl.mixins import ManagesNames, HasLoop, HasName
 from opendna.autobahn.repl.sessions import Session
 
 __author__ = 'Adam Jorgensen <adam.jorgensen.za@gmail.com>'
 
 
-class Connection(ManagesNames, AbstractConnection):
-    def __init__(self, manager: AbstractConnectionManager, uri: str, realm: str,
-                 extra: dict=None, serializers: List[ISerializer]=None,
+class Connection(HasName, ManagesNames, AbstractConnection):
+    def __init__(self, manager: Union[ManagesNames, AbstractConnectionManager],
+                 uri: str, realm: str, extra: dict=None,
+                 serializers: List[ISerializer]=None,
                  ssl: Union[SSLContext, bool]=None, proxy: dict=None,
                  headers: dict=None):
         super().__init__(
             manager=manager, uri=uri, realm=realm, extra=extra,
             serializers=serializers, ssl=ssl, proxy=proxy, headers=headers
         )
+        self.__init_has_name__(manager)
         self.__init_manages_names__()
+
+    def name_for(self, item):
+        # TODO: Allow custom Session class
+        assert isinstance(item, Session)
+        return super().name_for(id(item))
 
     @ManagesNames.with_name
     def session(self, authmethod: str='anonymous', authid: str=None,
@@ -58,6 +65,7 @@ class Connection(ManagesNames, AbstractConnection):
             f'Generating {authmethod} session to {self._realm}@{self._uri} '
             f'with name {name}'
         )
+        # TODO: Allow custom Session class
         session = Session(
             connection=self, authmethod=authmethod, authid=authid,
             authrole=authrole, authextra=authextra, resumable=resumable,
@@ -65,6 +73,7 @@ class Connection(ManagesNames, AbstractConnection):
         )
         session_id = id(session)
         self._items[session_id] = session
+        self._items__names[session_id] = name
         self._names__items[name] = session_id
         return session
 
@@ -76,18 +85,25 @@ class ConnectionManager(ManagesNames, HasLoop, AbstractConnectionManager):
         self.__init_manages_names__()
         self.__init_has_loop__(loop)
 
+    def name_for(self, item):
+        # TODO: Allow custom Connection class
+        assert isinstance(item, Connection)
+        return super().name_for(id(item))
+
     @ManagesNames.with_name
     def __call__(self, uri: str, realm: str=None, extra=None,
                  serializers=None, ssl=None, proxy=None, headers=None, *,
                  name: str=None) -> AbstractConnection:
 
         print(f'Generating connection to {realm}@{uri} with name {name}')
+        # TODO: Allow custom Connection class
         connection = Connection(
             manager=self, uri=uri, realm=realm, extra=extra,
             serializers=serializers, ssl=ssl, proxy=proxy, headers=headers
         )
         connection_id = id(connection)
         self._items[connection_id] = connection
+        self._items__names[connection_id] = name
         self._names__items[name] = connection_id
         return connection
 

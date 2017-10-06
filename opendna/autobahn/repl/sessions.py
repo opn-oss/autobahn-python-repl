@@ -22,6 +22,7 @@
 # SOFTWARE.
 ################################################################################
 import asyncio
+from typing import Union
 
 from autobahn.asyncio.wamp import ApplicationRunner
 from autobahn.wamp import ComponentConfig
@@ -30,6 +31,7 @@ from opendna.autobahn.repl.abc import (
     AbstractSession,
     AbstractConnection
 )
+from opendna.autobahn.repl.mixins import ManagesNames, HasName
 from opendna.autobahn.repl.pubsub import PublisherManager, SubscribeManager
 from opendna.autobahn.repl.rpc import CallManager, RegistrationManager
 from opendna.autobahn.repl.wamp import REPLApplicationSession
@@ -37,8 +39,8 @@ from opendna.autobahn.repl.wamp import REPLApplicationSession
 __author__ = 'Adam Jorgensen <adam.jorgensen.za@gmail.com>'
 
 
-class Session(AbstractSession):
-    def __init__(self, connection: AbstractConnection,
+class Session(HasName, AbstractSession):
+    def __init__(self, connection: Union[ManagesNames, AbstractConnection],
                  authmethod: str='anonymous', authid: str=None,
                  authrole: str=None, authextra: dict=None, resumable: bool=None,
                  resume_session: int=None, resume_token: str=None):
@@ -47,6 +49,7 @@ class Session(AbstractSession):
             authrole=authrole, authextra=authextra, resumable=resumable,
             resume_session=resume_session, resume_token=resume_token
         )
+        self.__init_has_name__(connection)
         # TODO: Support custom manager classes
         self._call_manager = CallManager(self)
         self._register_manager = RegistrationManager(self)
