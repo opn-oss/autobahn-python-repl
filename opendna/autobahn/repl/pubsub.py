@@ -25,7 +25,7 @@ import asyncio
 from copy import deepcopy
 
 from autobahn.wamp import PublishOptions
-from typing import Union, List, Iterable, Dict, Any
+from typing import Union, List, Iterable, Dict, Any, Callable
 
 from opendna.autobahn.repl.abc import (
     AbstractPublication,
@@ -34,7 +34,7 @@ from opendna.autobahn.repl.abc import (
     AbstractSession,
     AbstractSubscription,
     AbstractSubscribe,
-    AbstractSubscribeManager
+    AbstractSubscriptionManager
 )
 from opendna.autobahn.repl.mixins import ManagesNames, HasSession, HasName
 from opendna.autobahn.repl.utils import Keep
@@ -186,11 +186,30 @@ class Subscription(AbstractSubscription):
     pass
 
 
-class Subscribe(AbstractSubscribe):
-    pass
-
-
-class SubscribeManager(HasSession, ManagesNames, AbstractSubscribeManager):
+class SubscriptionManager(HasSession, ManagesNames, AbstractSubscriptionManager):
     def __init__(self, session: AbstractSession):
         self.__init_has_session__(session)
         self.__init_manages_names__()
+
+    def name_for(self, item):
+        # TODO: Allow custom Subscription class
+        assert isinstance(item, Subscription)
+        return super().name_for(id(item))
+
+    @ManagesNames.with_name
+    def __call__(self,
+                 topic: str,
+                 handler: Callable=None,
+                 *, name: str=None,
+                 **subscribe_options_kwargs) -> AbstractSubscription:
+        print(f'Generating subscription for {topic} with name {name}')
+        # TODO: Allow custom Subscription class
+        subscription = Subscription(
+            manager=self, topic=topic, handler=handler,
+            subscribe_options_kwargs=subscribe_options_kwargs
+        )
+        subscription_id = id(subscription)
+        self._items[subscription_id] = subscription
+        self._items__names[subscription_id] = name
+        self._names__items[name] = subscription_id
+        return subscription

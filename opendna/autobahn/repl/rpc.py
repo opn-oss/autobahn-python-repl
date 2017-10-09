@@ -274,14 +274,14 @@ class RegistrationManager(HasSession, ManagesNames, AbstractRegistrationManager)
                  prefix: str=None,
                  *, name: str=None,
                  **register_options_kwargs) -> AbstractRegistration:
-        print(f'Generating register for {procedure} with name {name}')
+        print(f'Generating registration for {procedure} with name {name}')
         # TODO: Allow custom Registration class
-        register = Registration(
+        registration = Registration(
             manager=self, procedure=procedure, endpoint=endpoint, prefix=prefix,
             register_options_kwargs=register_options_kwargs
         )
-        register_id = id(register)
-        self._items[register_id] = register
+        register_id = id(registration)
+        self._items[register_id] = registration
         self._items__names[register_id] = name
         self._names__items[name] = register_id
-        return register
+        return registration

@@ -27,7 +27,7 @@ from ssl import SSLContext
 from typing import Callable, Union, List, Iterable, Dict, Any, Optional
 
 from autobahn.wamp import ComponentConfig, RegisterOptions
-from autobahn.wamp.types import IRegistration
+from autobahn.wamp.types import IRegistration, ISubscription
 from autobahn.wamp.interfaces import ISerializer, ISession
 
 __author__ = 'Adam Jorgensen <adam.jorgensen.za@gmail.com>'
@@ -448,24 +448,61 @@ class AbstractPublication(object):
         raise NotImplementedError
 
 
-class AbstractSubscribeManager(object):
+class AbstractSubscriptionManager(object):
     @property
     def session(self) -> AbstractSession:
         raise NotImplementedError
 
-    def __call__(self, *args, **kwargs) -> 'AbstractSubscribe':
+    def __call__(self, *args, **kwargs) -> 'AbstractSubscription':
         raise NotImplementedError
 
-    def __getitem__(self, item) -> 'AbstractSubscribe':
+    def __getitem__(self, item) -> 'AbstractSubscription':
         raise NotImplementedError
 
-    def __getattr__(self, item) -> 'AbstractSubscribe':
+    def __getattr__(self, item) -> 'AbstractSubscription':
         raise NotImplementedError
-
-
-class AbstractSubscribe(object):
-    pass
 
 
 class AbstractSubscription(object):
-    pass
+    def __init__(self, manager: AbstractSubscriptionManager, topic: str,
+                 handler: Callable=None, subscribe_options_kwargs: dict=None):
+        self._manager = manager
+        self._topic = topic
+        self._handler = handler
+        self._subscribe_options_kwargs = subscribe_options_kwargs
+        self._subscription = None
+        self._exception = None
+
+    @property
+    def manager(self) -> AbstractSubscriptionManager:
+        return self._manager
+
+    @property
+    def topic(self) -> str:
+        return self._topic
+
+    @property
+    def handler(self) -> Optional[Callable]:
+        return self._handler
+
+    @property
+    def subscribe_options_kwargs(self) -> Optional[dict]:
+        return self._subscribe_options_kwargs
+
+    @property
+    def subscription(self) -> Optional[ISubscription]:
+        return self._subscription
+
+    @property
+    def exception(self) -> Optional[Exception]:
+        return self._exception
+
+    async def _subscribe(self):
+        raise NotImplementedError
+
+    async def _handler(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def __call__(self, *args, **kwargs):
+        raise NotImplementedError
+

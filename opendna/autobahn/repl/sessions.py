@@ -32,7 +32,7 @@ from opendna.autobahn.repl.abc import (
     AbstractConnection
 )
 from opendna.autobahn.repl.mixins import ManagesNames, HasName
-from opendna.autobahn.repl.pubsub import PublisherManager, SubscribeManager
+from opendna.autobahn.repl.pubsub import PublisherManager, SubscriptionManager
 from opendna.autobahn.repl.rpc import CallManager, RegistrationManager
 from opendna.autobahn.repl.wamp import REPLApplicationSession
 
@@ -54,7 +54,7 @@ class Session(HasName, AbstractSession):
         self._call_manager = CallManager(self)
         self._register_manager = RegistrationManager(self)
         self._publisher_manager = PublisherManager(self)
-        self._subscribe_manager = SubscribeManager(self)
+        self._subscribe_manager = SubscriptionManager(self)
         # TODO: Support custom application runner class?
         runner = ApplicationRunner(
             connection.uri, connection.realm, connection.extra,
