@@ -22,9 +22,11 @@
 # SOFTWARE.
 ################################################################################
 import asyncio
+from collections import namedtuple
 from copy import deepcopy
+from datetime import datetime
 
-from autobahn.wamp import PublishOptions
+from autobahn.wamp import PublishOptions, SubscribeOptions
 from typing import Union, List, Iterable, Dict, Any, Callable
 
 from opendna.autobahn.repl.abc import (
@@ -33,7 +35,6 @@ from opendna.autobahn.repl.abc import (
     AbstractPublisherManager,
     AbstractSession,
     AbstractSubscription,
-    AbstractSubscribe,
     AbstractSubscriptionManager
 )
 from opendna.autobahn.repl.mixins import ManagesNames, HasSession, HasName
@@ -42,8 +43,8 @@ from opendna.autobahn.repl.utils import Keep
 __author__ = 'Adam Jorgensen <adam.jorgensen.za@gmail.com>'
 
 
-class Publication(AbstractPublication):
-    def __init__(self, publisher: Uniom[MaagesNames, AbstractPublisher],
+class Publication(HasName, AbstractPublication):
+    def __init__(self, publisher: Union[ManagesNames, AbstractPublisher],
                  args: Iterable, kwargs: Dict[str, Any]):
         super(Publication, self).__init__(
             publisher=publisher, args=args, kwargs=kwargs
@@ -182,8 +183,82 @@ class PublisherManager(ManagesNames, HasSession, AbstractPublisherManager):
         return publisher
 
 
-class Subscription(AbstractSubscription):
-    pass
+class Subscription(HasName, ManagesNames, AbstractSubscription):
+    Event = namedtuple('Event', ('timestamp', 'args', 'kwargs'))
+
+    def __init__(self, manager: Union[ManagesNames, AbstractSubscriptionManager],
+                 topic: str, handler: Callable = None,
+                 subscribe_options_kwargs: dict = None):
+        super().__init__(manager, topic, handler, subscribe_options_kwargs)
+        self.__init_manages_names__()
+        self.__init_has_name__(manager)
+        self._future = None
+
+        def invoke(future: asyncio.Future):
+            loop = manager.session.connection.manager.loop
+            try:
+                result = future.result()
+                self._future = asyncio.ensure_future(self._subscribe(), loop=loop)
+            except Exception as e:
+                print(e)
+        manager.session.future.add_done_callback(invoke)
+
+    async def _unsubscribe(self):
+        try:
+            print(f'Unsubscription of {self._topic} with name {self.name} starting')
+            await self._subscription.unsubscribe()
+            print(f'Unsubscription of {self._topic} with name {self.name} succeeded')
+        except Exception as e:
+            print(f'Unsubscription of {self._topic} with name {self.name} failed')
+            self._exception = e
+
+    async def _subscribe(self):
+        try:
+            options = SubscribeOptions(**self._subscribe_options_kwargs)
+            session = self._manager.session.application_session
+            print(f'Subscription to {self._topic} with name {self.name} starting')
+            self._subscription = await session.subscribe(
+                handler=self._handler,
+                topic=self._topic,
+                options=options
+            )
+            print(f'Subscription to {self._topic} with name {self.name} succeeded')
+        except Exception as e:
+            print(f'Subscription to {self._topic} with name {self.name} failed')
+            self._exception = e
+
+    async def _handler(self, *args, **kwargs):
+        name = self._generate_name()
+        now = datetime.now()
+        self._items.append(self.Event(now, args, kwargs))
+        event_id = len(self._items) - 1
+        self._items__names[event_id] = name
+        self._names__items[name] = event_id
+        print(f'Event named {name} received at {now} on topic '
+              f'{self._topic} named {self.name}')
+        if asyncio.iscoroutinefunction(self._handler):
+            return await self._handler(*args, **kwargs)
+        elif callable(self._endpoint):
+            return self._handler(*args, **kwargs)
+
+    def unsubscribe(self):
+        if self._registration is None:
+            raise Exception(f'{self._topic} is not subscribed yet')
+        loop = self._manager.session.connection.manager.loop
+        asyncio.ensure_future(self._unsubscribe(), loop=loop)
+
+    def __call__(self,
+                 topic: str,
+                 handler: Callable=None,
+                 *, name: str=None,
+                 **new_subscribe_options_kwargs) -> AbstractSubscription:
+        subscribe_options_kwargs = deepcopy(self._subscribe_options_kwargs)
+        subscribe_options_kwargs.update(new_subscribe_options_kwargs)
+        return self._manager(
+            topic or self._topic,
+            handler or self._handler,
+            **subscribe_options_kwargs
+        )
 
 
 class SubscriptionManager(HasSession, ManagesNames, AbstractSubscriptionManager):

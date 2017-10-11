@@ -96,6 +96,9 @@ class ManagesNames(object, metaclass=HasNamesMeta):
     def __contains__(self, item):
         return item in self._items or item in self._names__items
 
+    def __dir__(self):
+        return self._names__items.keys()
+
 
 class HasName(object):
     """

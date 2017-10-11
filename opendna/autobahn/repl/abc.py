@@ -318,6 +318,12 @@ class AbstractRegistration(object):
     def exception(self) -> Optional[Exception]:
         return self._exception
 
+    def unregister(self):
+        raise NotImplementedError
+
+    async def _unregister(self):
+        raise NotImplementedError
+
     async def _register(self):
         raise NotImplementedError
 
@@ -496,6 +502,12 @@ class AbstractSubscription(object):
     @property
     def exception(self) -> Optional[Exception]:
         return self._exception
+
+    def unsubscribe(self):
+        raise NotImplementedError
+
+    async def _unsubscribe(self):
+        raise NotImplementedError
 
     async def _subscribe(self):
         raise NotImplementedError

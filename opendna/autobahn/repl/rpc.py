@@ -185,7 +185,6 @@ class Registration(HasName, ManagesNames, AbstractRegistration):
         self.__init_manages_names__()
         self.__init_has_name__(manager)
         self._future = None
-        self._registration: Optional[IRegistration] = None
 
         def invoke(future: asyncio.Future):
             loop = manager.session.connection.manager.loop
@@ -250,11 +249,14 @@ class Registration(HasName, ManagesNames, AbstractRegistration):
         now = datetime.now()
         self._items.append(self.Hit(now, args, kwargs))
         hit_id = len(self._items) - 1
+        self._items__names[hit_id] = name
         self._names__items[name] = hit_id
-        print(f'{self._procedure} with name {self.name} hit at {now} with '
-              f'ID {hit_id} and hit name {name} stored')
-        if callable(self._endpoint):
+        print(f'End-point {self._procedure} named {self.name} hit at {now}. '
+              f'Hit named {name} stored')
+        if asyncio.iscoroutinefunction(self._endpoint):
             return await self._endpoint(*args, **kwargs)
+        if callable(self._endpoint):
+            return self._endpoint(*args, **kwargs)
 
 
 class RegistrationManager(HasSession, ManagesNames, AbstractRegistrationManager):
