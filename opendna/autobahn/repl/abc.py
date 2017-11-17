@@ -104,18 +104,26 @@ class AbstractConnection(object):
 
 
 class AbstractSession(object):
-    def __init__(self, connection: AbstractConnection,
-                 authmethod: str='anonymous', authid: str=None,
-                 authrole: str=None, authextra: dict=None, resumable: bool=None,
-                 resume_session: int=None, resume_token: str=None):
+    def __init__(self,
+                 connection: AbstractConnection,
+                 authmethods: Union[str, Iterable[str]]= 'anonymous',
+                 authid: str=None,
+                 authrole: str=None,
+                 authextra: dict=None,
+                 resumable: bool=None,
+                 resume_session: int=None,
+                 resume_token: str=None,
+                 **session_kwargs):
+        authmethods = (authmethods,) if isinstance(authmethods, str) else authmethods
         self._connection = connection
-        self._authmethod = authmethod
+        self._authmethods = authmethods
         self._authid = authid
         self._authrole = authrole
         self._authextra = authextra
         self._resumable = resumable
         self._resume_session = resume_session
         self._resume_token = resume_token
+        self._session_kwargs = session_kwargs
         self._application_session = None
         self._future: asyncio.Future = connection.manager.loop.create_future()
 
@@ -124,8 +132,8 @@ class AbstractSession(object):
         return self._connection
 
     @property
-    def authmethod(self) -> str:
-        return self._authmethod
+    def authmethods(self) -> str:
+        return self._authmethods
 
     @property
     def authid(self) -> Optional[str]:
@@ -150,6 +158,10 @@ class AbstractSession(object):
     @property
     def resume_token(self) -> Optional[str]:
         return self._resume_token
+
+    @property
+    def session_kwargs(self) -> Dict[str, Any]:
+        return self._session_kwargs
 
     @property
     def future(self) -> asyncio.Future:

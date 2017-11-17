@@ -43,8 +43,23 @@ class REPLApplicationSession(ApplicationSession):
         super().onJoin(details)
         self._future.set_result(self)
 
+    def handleTicketChallenge(self, challenge):
+        return self._session.session_kwargs['ticket']
+
+    def handleWAMPCRAChallenge(self, challenge):
+        raise NotImplementedError
+
+    def handleCryptosignChallenge(self, challenge):
+        raise NotImplementedError
+
     def onChallenge(self, challenge):
         try:
+            if challenge.method == 'ticket':
+                return self.handleTicketChallenge(challenge)
+            elif challenge.method == 'wampcra':
+                return self.handleWAMPCRAChallenge(challenge)
+            elif challenge.method == 'cryptosign':
+                return self.handleCryptosignChallenge(challenge)
             return super().onChallenge(challenge)
         except Exception as e:
             self._future.set_exception(e)
@@ -59,7 +74,16 @@ class REPLApplicationSession(ApplicationSession):
 
     def onConnect(self):
         try:
-            super().onConnect()
+            self.join(
+                realm=self._session.connection.realm,
+                authmethods=self._session.authmethods,
+                authid=self._session.authid,
+                authrole=self._session.authrole,
+                authextra=self._session.authextra,
+                resumable=self._session.resumable,
+                resume_session=self._session.resume_session,
+                resume_token=self._session.resume_token
+            )
         except Exception as e:
             self._future.set_exception(e)
             raise

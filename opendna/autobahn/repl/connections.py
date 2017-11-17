@@ -62,12 +62,12 @@ class Connection(HasName, ManagesNames, AbstractConnection):
                 resume_session: int=None, resume_token: str=None,
                 *, name: str=None) -> AbstractSession:
         print(
-            f'Generating {authmethod} session to {self._realm}@{self._uri} '
+            f'Generating {authmethods} session to {self._realm}@{self._uri} '
             f'with name {name}'
         )
         # TODO: Allow custom Session class
         session = Session(
-            connection=self, authmethod=authmethod, authid=authid,
+            connection=self, authmethods=authmethod, authid=authid,
             authrole=authrole, authextra=authextra, resumable=resumable,
             resume_session=resume_session, resume_token=resume_token
         )

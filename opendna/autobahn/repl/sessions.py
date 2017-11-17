@@ -22,7 +22,7 @@
 # SOFTWARE.
 ################################################################################
 import asyncio
-from typing import Union
+from typing import Union, List, Iterable
 
 from autobahn.asyncio.wamp import ApplicationRunner
 from autobahn.wamp import ComponentConfig
@@ -40,12 +40,17 @@ __author__ = 'Adam Jorgensen <adam.jorgensen.za@gmail.com>'
 
 
 class Session(HasName, AbstractSession):
-    def __init__(self, connection: Union[ManagesNames, AbstractConnection],
-                 authmethod: str='anonymous', authid: str=None,
-                 authrole: str=None, authextra: dict=None, resumable: bool=None,
-                 resume_session: int=None, resume_token: str=None):
+    def __init__(self,
+                 connection: Union[ManagesNames, AbstractConnection],
+                 authmethods: Union[str, Iterable[str]]= 'anonymous',
+                 authid: str=None,
+                 authrole: str=None,
+                 authextra: dict=None,
+                 resumable: bool=None,
+                 resume_session: int=None,
+                 resume_token: str=None):
         super().__init__(
-            connection=connection, authmethod=authmethod, authid=authid,
+            connection=connection, authmethods=authmethods, authid=authid,
             authrole=authrole, authextra=authextra, resumable=resumable,
             resume_session=resume_session, resume_token=resume_token
         )
@@ -71,7 +76,7 @@ class Session(HasName, AbstractSession):
         )
 
     def _factory(self, config: ComponentConfig):
-        # TODO: Support custom ApplicationSession class
+        # TODO: Support custom REPLApplicationSession class
         self._application_session = REPLApplicationSession(
             self, self._future, config
         )
