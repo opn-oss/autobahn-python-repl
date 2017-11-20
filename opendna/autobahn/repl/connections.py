@@ -23,7 +23,7 @@
 ################################################################################
 from asyncio import AbstractEventLoop
 from ssl import SSLContext
-from typing import List, Union
+from typing import List, Union, Iterable
 
 from autobahn.wamp.interfaces import ISerializer
 
@@ -57,19 +57,26 @@ class Connection(HasName, ManagesNames, AbstractConnection):
         return super().name_for(id(item))
 
     @ManagesNames.with_name
-    def session(self, authmethod: str='anonymous', authid: str=None,
-                authrole: str=None, authextra: dict=None, resumable: bool=None,
-                resume_session: int=None, resume_token: str=None,
-                *, name: str=None) -> AbstractSession:
+    def session(self,
+                authmethods: Union[str, List[str]]= 'anonymous',
+                authid: str=None,
+                authrole: str=None,
+                authextra: dict=None,
+                resumable: bool=None,
+                resume_session: int=None,
+                resume_token: str=None,
+                *, name: str=None,
+                **session_kwargs) -> AbstractSession:
         print(
             f'Generating {authmethods} session to {self._realm}@{self._uri} '
             f'with name {name}'
         )
         # TODO: Allow custom Session class
         session = Session(
-            connection=self, authmethods=authmethod, authid=authid,
+            connection=self, authmethods=authmethods, authid=authid,
             authrole=authrole, authextra=authextra, resumable=resumable,
-            resume_session=resume_session, resume_token=resume_token
+            resume_session=resume_session, resume_token=resume_token,
+            **session_kwargs
         )
         session_id = id(session)
         self._items[session_id] = session

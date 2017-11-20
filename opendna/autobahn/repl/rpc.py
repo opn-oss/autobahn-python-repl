@@ -39,13 +39,14 @@ from opendna.autobahn.repl.abc import (
     AbstractRegistrationManager,
     AbstractRegistration
 )
-from opendna.autobahn.repl.mixins import HasSession, ManagesNames, HasName
+from opendna.autobahn.repl.mixins import HasSession, ManagesNames, HasName, \
+    HasFuture
 from opendna.autobahn.repl.utils import Keep
 
 __author__ = 'Adam Jorgensen <adam.jorgensen.za@gmail.com>'
 
 
-class Invocation(HasName, AbstractInvocation):
+class Invocation(HasName, HasFuture, AbstractInvocation):
 
     def __init__(self,
                  call: Union[ManagesNames, AbstractCall],
@@ -53,6 +54,7 @@ class Invocation(HasName, AbstractInvocation):
                  kwargs: Dict[str, Any]):
         super(Invocation, self).__init__(call=call, args=args, kwargs=kwargs)
         self.__init_has_name__(call)
+        self.__init_has_future__()
 
         def invoke(future: asyncio.Future):
             loop = call.manager.session.connection.manager.loop
@@ -61,6 +63,7 @@ class Invocation(HasName, AbstractInvocation):
                 self._future = asyncio.ensure_future(self._invoke(), loop=loop)
             except Exception as e:
                 print(e)
+        # TODO: Fix this type confusion
         call.manager.session.future.add_done_callback(invoke)
 
     def _default_on_progress(self, value):
@@ -174,7 +177,7 @@ class CallManager(HasSession, ManagesNames, AbstractCallManager):
         return call
 
 
-class Registration(HasName, ManagesNames, AbstractRegistration):
+class Registration(HasName, ManagesNames, HasFuture, AbstractRegistration):
     Hit = namedtuple('Hit', ('timestamp', 'args', 'kwargs'))
 
     def __init__(self, manager: Union[ManagesNames, AbstractRegistrationManager],
@@ -184,7 +187,7 @@ class Registration(HasName, ManagesNames, AbstractRegistration):
                          register_options_kwargs)
         self.__init_manages_names__()
         self.__init_has_name__(manager)
-        self._future = None
+        self.__init_has_future__()
 
         def invoke(future: asyncio.Future):
             loop = manager.session.connection.manager.loop
@@ -193,6 +196,7 @@ class Registration(HasName, ManagesNames, AbstractRegistration):
                 self._future = asyncio.ensure_future(self._register(), loop=loop)
             except Exception as e:
                 print(e)
+        # TODO: Fix this type confusion
         manager.session.future.add_done_callback(invoke)
 
     @property

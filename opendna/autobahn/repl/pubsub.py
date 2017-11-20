@@ -37,19 +37,21 @@ from opendna.autobahn.repl.abc import (
     AbstractSubscription,
     AbstractSubscriptionManager
 )
-from opendna.autobahn.repl.mixins import ManagesNames, HasSession, HasName
+from opendna.autobahn.repl.mixins import ManagesNames, HasSession, HasName, \
+    HasFuture
 from opendna.autobahn.repl.utils import Keep
 
 __author__ = 'Adam Jorgensen <adam.jorgensen.za@gmail.com>'
 
 
-class Publication(HasName, AbstractPublication):
+class Publication(HasName, HasFuture, AbstractPublication):
     def __init__(self, publisher: Union[ManagesNames, AbstractPublisher],
                  args: Iterable, kwargs: Dict[str, Any]):
         super(Publication, self).__init__(
             publisher=publisher, args=args, kwargs=kwargs
         )
         self.__init_has_name__(publisher)
+        self.__init_has_future__()
 
         def invoke(future: asyncio.Future):
             loop = publisher.manager.session.connection.manager.loop
@@ -58,6 +60,7 @@ class Publication(HasName, AbstractPublication):
                 self._future = asyncio.ensure_future(self._invoke(), loop=loop)
             except Exception as e:
                 print(e)
+        # TODO: Fix this type confusion
         publisher.manager.session.future.add_done_callback(invoke)
 
     async def _invoke(self):
@@ -183,7 +186,7 @@ class PublisherManager(ManagesNames, HasSession, AbstractPublisherManager):
         return publisher
 
 
-class Subscription(HasName, ManagesNames, AbstractSubscription):
+class Subscription(HasName, ManagesNames, HasFuture, AbstractSubscription):
     Event = namedtuple('Event', ('timestamp', 'args', 'kwargs'))
 
     def __init__(self, manager: Union[ManagesNames, AbstractSubscriptionManager],
@@ -192,7 +195,7 @@ class Subscription(HasName, ManagesNames, AbstractSubscription):
         super().__init__(manager, topic, handler, subscribe_options_kwargs)
         self.__init_manages_names__()
         self.__init_has_name__(manager)
-        self._future = None
+        self.__init_has_future__()
 
         def invoke(future: asyncio.Future):
             loop = manager.session.connection.manager.loop
@@ -201,6 +204,7 @@ class Subscription(HasName, ManagesNames, AbstractSubscription):
                 self._future = asyncio.ensure_future(self._subscribe(), loop=loop)
             except Exception as e:
                 print(e)
+        # TODO: Fix this type confusion
         manager.session.future.add_done_callback(invoke)
 
     async def _unsubscribe(self):

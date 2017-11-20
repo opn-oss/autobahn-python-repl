@@ -106,7 +106,7 @@ class AbstractConnection(object):
 class AbstractSession(object):
     def __init__(self,
                  connection: AbstractConnection,
-                 authmethods: Union[str, Iterable[str]]= 'anonymous',
+                 authmethods: Union[str, List[str]]= 'anonymous',
                  authid: str=None,
                  authrole: str=None,
                  authextra: dict=None,
@@ -114,7 +114,7 @@ class AbstractSession(object):
                  resume_session: int=None,
                  resume_token: str=None,
                  **session_kwargs):
-        authmethods = (authmethods,) if isinstance(authmethods, str) else authmethods
+        authmethods = [authmethods] if isinstance(authmethods, str) else authmethods
         self._connection = connection
         self._authmethods = authmethods
         self._authid = authid
@@ -124,7 +124,6 @@ class AbstractSession(object):
         self._resume_session = resume_session
         self._resume_token = resume_token
         self._session_kwargs = session_kwargs
-        self._future: asyncio.Future = connection.manager.loop.create_future()
         self._application_session = None
 
     @property
@@ -162,10 +161,6 @@ class AbstractSession(object):
     @property
     def session_kwargs(self) -> Dict[str, Any]:
         return self._session_kwargs
-
-    @property
-    def future(self) -> asyncio.Future:
-        return self._future
 
     @property
     def application_session(self) -> ISession:

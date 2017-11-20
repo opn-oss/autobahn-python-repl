@@ -31,7 +31,7 @@ from opendna.autobahn.repl.abc import (
     AbstractSession,
     AbstractConnection
 )
-from opendna.autobahn.repl.mixins import ManagesNames, HasName
+from opendna.autobahn.repl.mixins import ManagesNames, HasName, HasFuture
 from opendna.autobahn.repl.pubsub import PublisherManager, SubscriptionManager
 from opendna.autobahn.repl.rpc import CallManager, RegistrationManager
 from opendna.autobahn.repl.wamp import REPLApplicationSession
@@ -39,22 +39,25 @@ from opendna.autobahn.repl.wamp import REPLApplicationSession
 __author__ = 'Adam Jorgensen <adam.jorgensen.za@gmail.com>'
 
 
-class Session(HasName, AbstractSession):
+class Session(HasFuture, HasName, AbstractSession):
     def __init__(self,
                  connection: Union[ManagesNames, AbstractConnection],
-                 authmethods: Union[str, Iterable[str]]= 'anonymous',
+                 authmethods: Union[str, List[str]]= 'anonymous',
                  authid: str=None,
                  authrole: str=None,
                  authextra: dict=None,
                  resumable: bool=None,
                  resume_session: int=None,
-                 resume_token: str=None):
+                 resume_token: str=None,
+                 **session_kwargs):
         super().__init__(
             connection=connection, authmethods=authmethods, authid=authid,
             authrole=authrole, authextra=authextra, resumable=resumable,
-            resume_session=resume_session, resume_token=resume_token
+            resume_session=resume_session, resume_token=resume_token,
+            **session_kwargs
         )
         self.__init_has_name__(connection)
+        self.__init_has_future__(connection.manager.loop.create_future())
         # TODO: Support custom manager classes
         self._call_manager = CallManager(self)
         self._register_manager = RegistrationManager(self)

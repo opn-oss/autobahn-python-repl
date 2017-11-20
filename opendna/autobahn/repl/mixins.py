@@ -21,12 +21,26 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 ################################################################################
-from asyncio import AbstractEventLoop
+from asyncio import AbstractEventLoop, Future
+from typing import Optional, Iterable
 
 from decorator import decorator
 
 from opendna.autobahn.repl.abc import AbstractSession
 from opendna.autobahn.repl.utils import generate_name
+
+
+class HasFuture(object):
+    """
+    Mix-in providing read-only access to an asyncio.Future instance
+    """
+    def __init_has_future__(self, future: Future=None):
+        assert isinstance(future, (type(None), Future))
+        self._future = future
+
+    @property
+    def future(self) -> Optional[Future]:
+        return self._future
 
 
 class HasLoop(object):
@@ -38,7 +52,7 @@ class HasLoop(object):
         self._loop = loop
 
     @property
-    def loop(self):
+    def loop(self) -> AbstractEventLoop:
         return self._loop
 
 
@@ -77,13 +91,13 @@ class ManagesNames(object, metaclass=HasNamesMeta):
         self._names__items = {}
         self._items__names = {}
 
-    def _generate_name(self, name=None):
+    def _generate_name(self, name=None) -> str:
         name = generate_name(name)
         while name in self:
             name = generate_name(length=len(name) + 1)
         return name
 
-    def name_for(self, item):
+    def name_for(self, item) -> str:
         return self._items__names[item]
 
     def __getitem__(self, item):
@@ -93,10 +107,10 @@ class ManagesNames(object, metaclass=HasNamesMeta):
     def __getattr__(self, item):
         return self[item]
 
-    def __contains__(self, item):
+    def __contains__(self, item) -> bool:
         return item in self._items or item in self._names__items
 
-    def __dir__(self):
+    def __dir__(self) -> Iterable[str]:
         return self._names__items.keys()
 
 
@@ -109,5 +123,5 @@ class HasName(object):
         self._name_provider = name_provider
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self._name_provider.name_for(self)
