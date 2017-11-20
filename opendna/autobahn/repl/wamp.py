@@ -24,7 +24,7 @@
 import asyncio
 
 from autobahn.asyncio.wamp import ApplicationSession
-from autobahn.wamp import ComponentConfig
+from autobahn.wamp import ComponentConfig, auth
 
 from opendna.autobahn.repl.abc import AbstractSession
 
@@ -43,23 +43,76 @@ class REPLApplicationSession(ApplicationSession):
         super().onJoin(details)
         self._future.set_result(self)
 
-    def handleTicketChallenge(self, challenge):
+    def handle_ticket_challenge(self, challenge):
+        """
+        Default handler for WAMP-Ticket authentication
+
+        Returns the `ticket` keyword-argument value supplied to the constructor
+        of the opendna.autobahn.repl.abc.AbstractSession instance that is the
+        parent of this opendna.autobahn.repl.wamp.REPLApplicationSession instance
+
+        :param challenge:
+        :return:
+        """
         return self._session.session_kwargs['ticket']
 
-    def handleWAMPCRAChallenge(self, challenge):
-        raise NotImplementedError
+    def handle_wampcra_challenge(self, challenge):
+        """
+        Default handler for WAMP-CRA authentication
 
-    def handleCryptosignChallenge(self, challenge):
-        raise NotImplementedError
+        Uses the `secret` keyword-argument value supplied to the constructor
+        of the opendna.autobahn.repl.abc.AbstractSession instance that is the
+        parent of this opendna.autobahn.repl.wamp.REPLApplicationSession instance
+        in order to generate an authentication signature
+
+        :param challenge:
+        :return:
+        """
+        secret = self._session.session_kwargs['secret']
+        if 'salt' in challenge.extra:
+            secret = auth.derive_key(
+                self._session.session_kwargs['secret'],
+                challenge.extra['salt'],
+                challenge.extra['iterations'],
+                challenge.extra['keylen']
+            )
+        signature = auth.compute_wcs(secret, challenge.extra['challenge'])
+        return signature
+
+    def handle_cryptosign_challenge(self, challenge):
+        """
+        Default handler for WAML-Cryptosign authentication
+
+        Uses the `key` keyword-argument value supplied to the constructor of the
+        opendna.autobahn.repl.abc.AbstractSession instance that is the
+        parent of this opendna.autobahn.repl.wamp.REPLApplicationSession instance
+        in order to cryptographically sign an authentication challenge.
+
+        `key` needs to be an instance of autobahn.wamp.cryptosign.SigningKey
+
+        :param challenge:
+        :return:
+        """
+        return self._session.session_kwargs['key'].sign_challenge(
+            self, challenge
+        )
 
     def onChallenge(self, challenge):
+        """
+        Default handler for Challenge-based authentication. Farms out handling
+        of WAMP-Ticket, WAMP-CRA and WAMP-Cryptosign authentication challenges
+        to the relevant companion methods on this class
+
+        :param challenge:
+        :return:
+        """
         try:
             if challenge.method == 'ticket':
-                return self.handleTicketChallenge(challenge)
+                return self.handle_ticket_challenge(challenge)
             elif challenge.method == 'wampcra':
-                return self.handleWAMPCRAChallenge(challenge)
+                return self.handle_wampcra_challenge(challenge)
             elif challenge.method == 'cryptosign':
-                return self.handleCryptosignChallenge(challenge)
+                return self.handle_cryptosign_challenge(challenge)
             return super().onChallenge(challenge)
         except Exception as e:
             self._future.set_exception(e)

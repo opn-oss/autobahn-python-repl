@@ -124,8 +124,8 @@ class AbstractSession(object):
         self._resume_session = resume_session
         self._resume_token = resume_token
         self._session_kwargs = session_kwargs
-        self._application_session = None
         self._future: asyncio.Future = connection.manager.loop.create_future()
+        self._application_session = None
 
     @property
     def connection(self) -> AbstractConnection:
