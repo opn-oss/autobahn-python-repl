@@ -22,6 +22,7 @@
 # SOFTWARE.
 ################################################################################
 from random import choice, choices
+from importlib import import_module
 import string
 
 __author__ = 'Adam Jorgensen <adam.jorgensen.za@gmail.com>'
@@ -45,3 +46,17 @@ def generate_name(name: str=None, length: int=8):
 
 
 Keep = type('Keep', (object,), {})()
+
+
+def get_class(fully_qualified_classpath: str, package: str=None) -> type:
+    """
+    Given a classpath, returns the class referenced
+
+    :param fully_qualified_classpath:
+    :param package:
+    :return:
+    """
+    path = fully_qualified_classpath.split('.')
+    class_name = path.pop()
+    module_ = import_module('.'.join(path), package)
+    return getattr(module_, class_name)
