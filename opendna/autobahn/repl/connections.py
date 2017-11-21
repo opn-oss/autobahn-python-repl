@@ -22,6 +22,7 @@
 # SOFTWARE.
 ################################################################################
 from asyncio import AbstractEventLoop
+from os import environ
 from ssl import SSLContext
 from typing import List, Union, Iterable
 
@@ -33,16 +34,20 @@ from opendna.autobahn.repl.abc import (
     AbstractSession
 )
 from opendna.autobahn.repl.mixins import ManagesNames, HasLoop, HasName
-from opendna.autobahn.repl.sessions import Session
+from opendna.autobahn.repl.utils import get_class
 
 __author__ = 'Adam Jorgensen <adam.jorgensen.za@gmail.com>'
 
 
 class Connection(HasName, ManagesNames, AbstractConnection):
-    def __init__(self, manager: Union[ManagesNames, AbstractConnectionManager],
-                 uri: str, realm: str, extra: dict=None,
+    def __init__(self,
+                 manager: Union[ManagesNames, AbstractConnectionManager],
+                 uri: str,
+                 realm: str,
+                 extra: dict=None,
                  serializers: List[ISerializer]=None,
-                 ssl: Union[SSLContext, bool]=None, proxy: dict=None,
+                 ssl: Union[SSLContext, bool]=None,
+                 proxy: dict=None,
                  headers: dict=None):
         super().__init__(
             manager=manager, uri=uri, realm=realm, extra=extra,
@@ -52,8 +57,8 @@ class Connection(HasName, ManagesNames, AbstractConnection):
         self.__init_manages_names__()
 
     def name_for(self, item):
-        # TODO: Allow custom Session class
-        assert isinstance(item, Session)
+        session_class = get_class(environ['session'])
+        assert isinstance(item, session_class)
         return super().name_for(id(item))
 
     @ManagesNames.with_name
@@ -65,14 +70,15 @@ class Connection(HasName, ManagesNames, AbstractConnection):
                 resumable: bool=None,
                 resume_session: int=None,
                 resume_token: str=None,
-                *, name: str=None,
+                *,
+                name: str=None,
                 **session_kwargs) -> AbstractSession:
         print(
             f'Generating {authmethods} session to {self._realm}@{self._uri} '
             f'with name {name}'
         )
-        # TODO: Allow custom Session class
-        session = Session(
+        session_class = get_class(environ['session'])
+        session = session_class(
             connection=self, authmethods=authmethods, authid=authid,
             authrole=authrole, authextra=authextra, resumable=resumable,
             resume_session=resume_session, resume_token=resume_token,
@@ -93,18 +99,25 @@ class ConnectionManager(ManagesNames, HasLoop, AbstractConnectionManager):
         self.__init_has_loop__(loop)
 
     def name_for(self, item):
-        # TODO: Allow custom Connection class
-        assert isinstance(item, Connection)
+        connection_class = get_class(environ['connection'])
+        assert isinstance(item, connection_class)
         return super().name_for(id(item))
 
     @ManagesNames.with_name
-    def __call__(self, uri: str, realm: str=None, extra=None,
-                 serializers=None, ssl=None, proxy=None, headers=None, *,
+    def __call__(self,
+                 uri: str,
+                 realm: str=None,
+                 extra=None,
+                 serializers=None,
+                 ssl=None,
+                 proxy=None,
+                 headers=None,
+                 *,
                  name: str=None) -> AbstractConnection:
 
         print(f'Generating connection to {realm}@{uri} with name {name}')
-        # TODO: Allow custom Connection class
-        connection = Connection(
+        connection_class = get_class(environ['connection'])
+        connection = connection_class(
             manager=self, uri=uri, realm=realm, extra=extra,
             serializers=serializers, ssl=ssl, proxy=proxy, headers=headers
         )

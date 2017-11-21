@@ -24,6 +24,8 @@
 import asyncio
 from collections import namedtuple
 from copy import deepcopy
+from os import environ
+
 from datetime import datetime
 
 from autobahn.wamp import PublishOptions, SubscribeOptions
@@ -39,7 +41,7 @@ from opendna.autobahn.repl.abc import (
 )
 from opendna.autobahn.repl.mixins import ManagesNames, HasSession, HasName, \
     HasFuture
-from opendna.autobahn.repl.utils import Keep
+from opendna.autobahn.repl.utils import Keep, get_class
 
 __author__ = 'Adam Jorgensen <adam.jorgensen.za@gmail.com>'
 
@@ -132,14 +134,14 @@ class Publisher(HasName, ManagesNames, AbstractPublisher):
         self.__init_manages_names__()
 
     def name_for(self, item):
-        # TODO: Allow custom Publication class
-        assert isinstance(item, Publication)
+        publication_class = get_class(environ['publication'])
+        assert isinstance(item, publication_class)
         return super().name_for(id(item))
 
     def __call__(self, *args, **kwargs) -> AbstractPublication:
         name = self._generate_name()
-        # TODO: Allow custom Publication class
-        publication = Publication(publisher=self, args=args, kwargs=kwargs)
+        publication_class = get_class(environ['publication'])
+        publication = publication_class(publisher=self, args=args, kwargs=kwargs)
         publication_id = id(publication)
         self._items[publication_id] = publication
         self._items__names[publication_id] = name
@@ -154,8 +156,8 @@ class PublisherManager(ManagesNames, HasSession, AbstractPublisherManager):
         self.__init_has_session__(session)
 
     def name_for(self, item):
-        # TODO: Allow custom Publisher. class
-        assert isinstance(item, Publisher)
+        publisher_class = get_class(environ['publisher'])
+        assert isinstance(item, publisher_class)
         return super().name_for(id(item))
 
     @ManagesNames.with_name
@@ -172,7 +174,8 @@ class PublisherManager(ManagesNames, HasSession, AbstractPublisherManager):
                  retain: bool=None, *,
                  name: str=None) -> AbstractPublisher:
         print(f'Generating publish to {topic} with name {name}')
-        publisher = Publisher(
+        publisher_class = get_class(environ['publisher'])
+        publisher = publisher_class(
             manager=self, topic=topic, acknowledge=acknowledge,
             exclude_me=exclude_me, exclude=exclude,
             exclude_authid=exclude_authid, exclude_authrole=exclude_authrole,
@@ -271,8 +274,8 @@ class SubscriptionManager(HasSession, ManagesNames, AbstractSubscriptionManager)
         self.__init_manages_names__()
 
     def name_for(self, item):
-        # TODO: Allow custom Subscription class
-        assert isinstance(item, Subscription)
+        subscription_class = get_class(environ['subscription'])
+        assert isinstance(item, subscription_class)
         return super().name_for(id(item))
 
     @ManagesNames.with_name
@@ -282,8 +285,8 @@ class SubscriptionManager(HasSession, ManagesNames, AbstractSubscriptionManager)
                  *, name: str=None,
                  **subscribe_options_kwargs) -> AbstractSubscription:
         print(f'Generating subscription for {topic} with name {name}')
-        # TODO: Allow custom Subscription class
-        subscription = Subscription(
+        subscription_class = get_class(environ['subscription'])
+        subscription = subscription_class(
             manager=self, topic=topic, handler=handler,
             subscribe_options_kwargs=subscribe_options_kwargs
         )

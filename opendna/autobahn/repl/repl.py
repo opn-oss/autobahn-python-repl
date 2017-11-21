@@ -22,23 +22,30 @@
 # SOFTWARE.
 ################################################################################
 import asyncio
+from argparse import ArgumentParser
+from os import environ
 
 import txaio
 from opendna.common.decorators import with_uvloop_if_possible
 from ptpython.repl import embed, run_config, PythonRepl
 
-from opendna.autobahn.repl.connections import ConnectionManager
+from opendna.autobahn.repl.utils import get_class
 
 
 @asyncio.coroutine
 def _start_repl(loop):
+    manager_class = get_class(environ['connection_manager'])
+    manager = manager_class(loop)
     yield from embed(
         globals={},
         locals={
-            'connections': ConnectionManager(loop),
+            'connect': manager,
+            'connect_to': manager,
+            'connections': manager,
         },
         title='AutoBahn-Python REPL',
-        return_asyncio_coroutine=True, patch_stdout=True
+        return_asyncio_coroutine=True,
+        patch_stdout=True
         # TODO: Handle configure parameter
         # TODO: Handle history_filename parameter
     )
@@ -54,5 +61,35 @@ def main():
 
 
 if __name__ == '__main__':
-    # TODO: Implement argument parser
+    prefix = 'opendna.autobahn.repl'
+    dest__class = {
+        'connection_manager': f'{prefix}.connections.ConnectionManager',
+        'connection': f'{prefix}.connections.Connection',
+        'session': f'{prefix}.sessions.Session',
+        'call_manager': f'{prefix}.rpc.CallManager',
+        'call': f'{prefix}.rpc.Call',
+        'invocation': f'{prefix}.rpc.Invocation',
+        'registration_manager': f'{prefix}.rpc.RegistrationManager',
+        'registration': f'{prefix}.rpc.Registration',
+        'publisher_manager': f'{prefix}.pubsub.PublisherManager',
+        'publisher': f'{prefix}.pubsub.Publisher',
+        'publication': f'{prefix}.pubsub.Publication',
+        'subscription_manager': f'{prefix}.pubsub.SubscriptionManager',
+        'subscription': f'{prefix}.pubsub.Subscription',
+        'application_runner': 'autobahn.asyncio.wamp.ApplicationRunner',
+        'application_session': f'{prefix}.wamp.REPLApplicationSession'
+    }
+    parser = ArgumentParser(description='Python REPL for interacting with Crossbar')
+    for dest, class_ in dest__class.items():
+        parser.add_argument(
+            f'--{dest.replace("_", "-")}', default=class_, dest=dest
+        )
+    # TODO: Add parameter for history file
+    # TODO: Add parameter for config module
+    args = parser.parse_args()
+    environ.update({
+        key: value
+        for key, value in vars(args).items()
+        if key in dest__class
+    })
     main()

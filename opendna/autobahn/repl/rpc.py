@@ -22,6 +22,7 @@
 # SOFTWARE.
 ################################################################################
 import asyncio
+from os import environ
 
 from autobahn.wamp.types import IRegistration
 from datetime import datetime
@@ -39,9 +40,13 @@ from opendna.autobahn.repl.abc import (
     AbstractRegistrationManager,
     AbstractRegistration
 )
-from opendna.autobahn.repl.mixins import HasSession, ManagesNames, HasName, \
+from opendna.autobahn.repl.mixins import (
+    HasSession,
+    ManagesNames,
+    HasName,
     HasFuture
-from opendna.autobahn.repl.utils import Keep
+)
+from opendna.autobahn.repl.utils import Keep, get_class
 
 __author__ = 'Adam Jorgensen <adam.jorgensen.za@gmail.com>'
 
@@ -120,15 +125,15 @@ class Call(ManagesNames, AbstractCall):
         )
 
     def name_for(self, item):
-        # TODO: Allow custom Invocation class
-        assert isinstance(item, Invocation)
+        invocation_class = get_class(environ['invocation'])
+        assert isinstance(item, invocation_class)
         return super().name_for(id(item))
 
     def __call__(self, *args, **kwargs) -> AbstractInvocation:
         name = self._generate_name()
         print(f'Invoking {self.procedure} with name {name}')
-        # TODO: Allow custom Invocation class
-        invocation = Invocation(call=self, args=args, kwargs=kwargs)
+        invocation_class = get_class(environ['invocation'])
+        invocation = invocation_class(call=self, args=args, kwargs=kwargs)
         invocation_id = id(invocation)
         self._items[invocation_id] = invocation
         self._items__names[invocation_id] = name
@@ -142,8 +147,8 @@ class CallManager(HasSession, ManagesNames, AbstractCallManager):
         self.__init_manages_names__()
 
     def name_for(self, item):
-        # TODO: Allow custom Call class
-        assert isinstance(item, Call)
+        call_class = get_class(environ['call'])
+        assert isinstance(item, call_class)
         return super().name_for(id(item))
 
     @ManagesNames.with_name
@@ -165,8 +170,8 @@ class CallManager(HasSession, ManagesNames, AbstractCallManager):
         # while name is None or name in self.__call_name__calls:
         #     name = generate_name(name)
         print(f'Generating call to {procedure} with name {name}')
-        # TODO: Allow custom Call class
-        call = Call(
+        call_class = get_class(environ['call'])
+        call = call_class(
             manager=self, procedure=procedure, on_progress=on_progress,
             timeout=timeout
         )
@@ -269,8 +274,8 @@ class RegistrationManager(HasSession, ManagesNames, AbstractRegistrationManager)
         self.__init_manages_names__()
 
     def name_for(self, item):
-        # TODO: Allow custom Registration class
-        assert isinstance(item, Registration)
+        registration_class = get_class(environ['registration'])
+        assert isinstance(item, registration_class)
         return super().name_for(id(item))
 
     @ManagesNames.with_name
@@ -281,8 +286,8 @@ class RegistrationManager(HasSession, ManagesNames, AbstractRegistrationManager)
                  *, name: str=None,
                  **register_options_kwargs) -> AbstractRegistration:
         print(f'Generating registration for {procedure} with name {name}')
-        # TODO: Allow custom Registration class
-        registration = Registration(
+        registration_class = get_class(environ['registration'])
+        registration = registration_class(
             manager=self, procedure=procedure, endpoint=endpoint, prefix=prefix,
             register_options_kwargs=register_options_kwargs
         )

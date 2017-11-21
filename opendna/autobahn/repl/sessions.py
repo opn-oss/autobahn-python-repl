@@ -22,9 +22,10 @@
 # SOFTWARE.
 ################################################################################
 import asyncio
-from typing import Union, List, Iterable
+from os import environ
 
-from autobahn.asyncio.wamp import ApplicationRunner
+from typing import Union, List
+
 from autobahn.wamp import ComponentConfig
 
 from opendna.autobahn.repl.abc import (
@@ -32,9 +33,7 @@ from opendna.autobahn.repl.abc import (
     AbstractConnection
 )
 from opendna.autobahn.repl.mixins import ManagesNames, HasName, HasFuture
-from opendna.autobahn.repl.pubsub import PublisherManager, SubscriptionManager
-from opendna.autobahn.repl.rpc import CallManager, RegistrationManager
-from opendna.autobahn.repl.wamp import REPLApplicationSession
+from opendna.autobahn.repl.utils import get_class
 
 __author__ = 'Adam Jorgensen <adam.jorgensen.za@gmail.com>'
 
@@ -58,13 +57,16 @@ class Session(HasFuture, HasName, AbstractSession):
         )
         self.__init_has_name__(connection)
         self.__init_has_future__(connection.manager.loop.create_future())
-        # TODO: Support custom manager classes
-        self._call_manager = CallManager(self)
-        self._register_manager = RegistrationManager(self)
-        self._publisher_manager = PublisherManager(self)
-        self._subscribe_manager = SubscriptionManager(self)
-        # TODO: Support custom application runner class?
-        runner = ApplicationRunner(
+        call_manager_class = get_class(environ['call_manager'])
+        self._call_manager = call_manager_class(self)
+        registration_manager_class = get_class(environ['registration_manager'])
+        self._register_manager = registration_manager_class(self)
+        publisher_manager_class = get_class(environ['publisher_manager'])
+        self._publisher_manager = publisher_manager_class(self)
+        subscription_manager_class = get_class(environ['subscription_manager'])
+        self._subscribe_manager = subscription_manager_class(self)
+        application_runner_class = get_class(environ['application_runner'])
+        runner = application_runner_class(
             connection.uri, connection.realm, connection.extra,
             connection.serializers, connection.ssl, connection.proxy,
             connection.headers
@@ -79,8 +81,8 @@ class Session(HasFuture, HasName, AbstractSession):
         )
 
     def _factory(self, config: ComponentConfig):
-        # TODO: Support custom REPLApplicationSession class
-        self._application_session = REPLApplicationSession(
+        application_session_class = get_class(environ['application_session'])
+        self._application_session = application_session_class(
             self, self._future, config
         )
         return self._application_session
