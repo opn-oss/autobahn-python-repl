@@ -334,7 +334,7 @@ class AbstractRegistration(object):
     async def _register(self):
         raise NotImplementedError
 
-    async def _endpoint(self, *args, **kwargs):
+    async def _endpoint_wrapper(self, *args, **kwargs):
         raise NotImplementedError
 
     def __call__(self, *args, **kwargs):
@@ -519,7 +519,7 @@ class AbstractSubscription(object):
     async def _subscribe(self):
         raise NotImplementedError
 
-    async def _handler(self, *args, **kwargs):
+    async def _handler_wrapper(self, *args, **kwargs):
         raise NotImplementedError
 
     def __call__(self, *args, **kwargs):

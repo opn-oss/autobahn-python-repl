@@ -225,7 +225,7 @@ class Subscription(HasName, ManagesNames, HasFuture, AbstractSubscription):
             session = self._manager.session.application_session
             print(f'Subscription to {self._topic} with name {self.name} starting')
             self._subscription = await session.subscribe(
-                handler=self._handler,
+                handler=self._handler_wrapper,
                 topic=self._topic,
                 options=options
             )
@@ -234,11 +234,11 @@ class Subscription(HasName, ManagesNames, HasFuture, AbstractSubscription):
             print(f'Subscription to {self._topic} with name {self.name} failed')
             self._exception = e
 
-    async def _handler(self, *args, **kwargs):
+    async def _handler_wrapper(self, *args, **kwargs):
         name = self._generate_name()
         now = datetime.now()
-        self._items.append(self.Event(now, args, kwargs))
-        event_id = len(self._items) - 1
+        event_id = len(self._items)
+        self._items[event_id] = self.Event(now, args, kwargs)
         self._items__names[event_id] = name
         self._names__items[name] = event_id
         print(f'Event named {name} received at {now} on topic '

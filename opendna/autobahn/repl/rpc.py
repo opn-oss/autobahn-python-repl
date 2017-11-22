@@ -243,7 +243,7 @@ class Registration(HasName, ManagesNames, HasFuture, AbstractRegistration):
             session = self._manager.session.application_session
             print(f'Registration of {self._procedure} with name {self.name} starting')
             self._registration = await session.register(
-                endpoint=self._endpoint,
+                endpoint=self._endpoint_wrapper,
                 procedure=self._procedure,
                 options=options,
                 prefix=self._prefix
@@ -253,11 +253,11 @@ class Registration(HasName, ManagesNames, HasFuture, AbstractRegistration):
             print(f'Registration of {self._procedure} with name {self.name} failed')
             self._exception = e
 
-    async def _endpoint(self, *args, **kwargs):
+    async def _endpoint_wrapper(self, *args, **kwargs):
         name = self._generate_name()
         now = datetime.now()
-        self._items.append(self.Hit(now, args, kwargs))
-        hit_id = len(self._items) - 1
+        hit_id = len(self._items)
+        self._items[hit_id] = self.Hit(now, args, kwargs)
         self._items__names[hit_id] = name
         self._names__items[name] = hit_id
         print(f'End-point {self._procedure} named {self.name} hit at {now}. '
