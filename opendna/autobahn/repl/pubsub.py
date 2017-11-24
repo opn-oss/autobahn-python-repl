@@ -75,7 +75,7 @@ class Publication(HasName, HasFuture, AbstractPublication):
                 exclude_authid=self._publisher.exclude_authid,
                 exclude_authrole=self._publisher.exclude_authrole,
                 eligible=self._publisher.eligible,
-                eligible_authid=self._publisher.eligibile_authid,
+                eligible_authid=self._publisher.eligible_authid,
                 eligible_authrole=self._publisher.eligible_authrole,
                 retain=self._publisher.retain
             )
@@ -245,7 +245,7 @@ class Subscription(HasName, ManagesNames, HasFuture, AbstractSubscription):
               f'{self._topic} named {self.name}')
         if asyncio.iscoroutinefunction(self._handler):
             return await self._handler(*args, **kwargs)
-        elif callable(self._endpoint):
+        elif callable(self._handler):
             return self._handler(*args, **kwargs)
 
     def unsubscribe(self):
