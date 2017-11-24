@@ -23,17 +23,60 @@
 ################################################################################
 import asyncio
 from argparse import ArgumentParser
+from functools import partial
 from os import environ
+import os.path
 
 import txaio
 from opendna.common.decorators import with_uvloop_if_possible
+from pathlib import Path
 from ptpython.repl import embed, run_config, PythonRepl
 
 from opendna.autobahn.repl.utils import get_class
 
 
+DEFAULT_HISTORY_FILE = str(Path.home() / 'autobahn_python_repl.history.txt')
+DEFAULT_CONFIG_FILE = str(Path.home() / 'autobahn_python_repl.config.py')
+
+
+def default_configure(repl: PythonRepl):
+    """
+    Default REPL configuration function
+
+    :param repl:
+    :return:
+    """
+    repl.show_signature = True
+    repl.show_docstring = True
+    repl.show_status_bar = True
+    repl.show_sidebar_help = True
+    repl.highlight_matching_parenthesis = True
+    repl.wrap_lines = True
+    repl.complete_while_typing = True
+    repl.vi_mode = False
+    repl.paste_mode = False
+    repl.prompt_style = 'classic'  # 'classic' or 'ipython'
+    repl.insert_blank_line_after_output = False
+    repl.enable_history_search = False
+    repl.enable_auto_suggest = False
+    repl.enable_open_in_editor = True
+    repl.enable_system_bindings = False
+    repl.confirm_exit = True
+    repl.enable_input_validation = True
+
+
 @asyncio.coroutine
-def _start_repl(loop):
+def start_repl(loop: asyncio.AbstractEventLoop):
+    """
+    Start the REPL and attach it to the provided event loop
+    :param loop:
+    :return:
+    """
+    config_file = environ.get('config_file', DEFAULT_CONFIG_FILE)
+    if os.path.exists(config_file):
+        configure = partial(run_config, config_file=config_file)
+    else:
+        configure = default_configure
     manager_class = get_class(environ['connection_manager'])
     manager = manager_class(loop)
     yield from embed(
@@ -45,9 +88,9 @@ def _start_repl(loop):
         },
         title='AutoBahn-Python REPL',
         return_asyncio_coroutine=True,
-        patch_stdout=True
-        # TODO: Handle configure parameter
-        # TODO: Handle history_filename parameter
+        patch_stdout=True,
+        configure=configure,
+        history_filename=environ.get('history_file', DEFAULT_HISTORY_FILE)
     )
 
 
@@ -56,7 +99,7 @@ def main():
     loop = asyncio.get_event_loop()
     txaio.use_asyncio()
     txaio.config.loop = loop
-    loop.run_until_complete(_start_repl(loop))
+    loop.run_until_complete(start_repl(loop))
     loop.stop()
 
 
@@ -84,12 +127,12 @@ if __name__ == '__main__':
         parser.add_argument(
             f'--{dest.replace("_", "-")}', default=class_, dest=dest
         )
-    # TODO: Add parameter for history file
-    # TODO: Add parameter for config module
+    parser.add_argument('--history-file', dest='history_file', default=DEFAULT_HISTORY_FILE)
+    parser.add_argument('--config-file', dest='config_file', default=DEFAULT_CONFIG_FILE)
     args = parser.parse_args()
     environ.update({
         key: value
         for key, value in vars(args).items()
-        if key in dest__class
+        if key in dest__class or key in {'history_file', 'config_file'}
     })
     main()
