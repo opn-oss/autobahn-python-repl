@@ -44,8 +44,8 @@ from opendna.autobahn.repl.mixins import (
     HasSession,
     ManagesNames,
     HasName,
-    HasFuture
-)
+    HasFuture,
+    ManagesNamesProxy)
 from opendna.autobahn.repl.utils import Keep, get_class
 
 __author__ = 'Adam Jorgensen <adam.jorgensen.za@gmail.com>'
@@ -123,6 +123,11 @@ class Call(ManagesNames, AbstractCall):
             manager=manager, procedure=procedure, on_progress=on_progress,
             timeout=timeout
         )
+        self._proxy = ManagesNamesProxy(self)
+
+    @property
+    def invocations(self) -> ManagesNamesProxy:
+        return self._proxy
 
     def name_for(self, item):
         invocation_class = get_class(environ['invocation'])
