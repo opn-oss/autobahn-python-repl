@@ -69,7 +69,7 @@ class HasSession(object):
         return self._session
 
 
-class HasNamesMeta(type):
+class ManagesNamesMeta(type):
     """
     Meta-class used by ManagesNames to provide the with_name decorator
     """
@@ -81,7 +81,7 @@ class HasNamesMeta(type):
         return decorator(cls.__with_name, f)
 
 
-class ManagesNames(object, metaclass=HasNamesMeta):
+class ManagesNames(object, metaclass=ManagesNamesMeta):
     """
     Mix-in providing item and attribute access to specific data stored
     the class instance. Also provides with ManagesNames.with_name decorator
@@ -112,6 +112,34 @@ class ManagesNames(object, metaclass=HasNamesMeta):
 
     def __dir__(self) -> Iterable[str]:
         return self._names__items.keys()
+
+
+class ManagesNamesProxy(object):
+    """
+    An object proxy for classes that make use of the ManagesNames mix-in. This
+    can be used by instances of ManagesNames to expose only their ManagesNames
+    functionality via a proxy
+    """
+    def __init__(self, target: ManagesNames):
+        self._target = target
+
+    def _generate_name(self, name=None) -> str:
+        return self._target._generate_name(name)
+
+    def name_for(self, item) -> str:
+        return self._target.name_for(item)
+
+    def __getitem__(self, item):
+        return self._target[item]
+
+    def __getattr__(self, item):
+        return getattr(self._target, item)
+
+    def __contains__(self, item) -> bool:
+        return item in self._target
+
+    def __dir__(self) -> Iterable[str]:
+        return dir(self._target)
 
 
 class HasName(object):
