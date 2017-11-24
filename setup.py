@@ -56,7 +56,7 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'wamp_repl = opendna.autobahn.repl.repl:main'
+            'autobahn_python_repl = opendna.autobahn.repl.repl:main'
         ]
     },
     classifiers=[
