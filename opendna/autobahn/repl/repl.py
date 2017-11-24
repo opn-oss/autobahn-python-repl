@@ -96,14 +96,6 @@ def start_repl(loop: asyncio.AbstractEventLoop):
 
 @with_uvloop_if_possible
 def main():
-    loop = asyncio.get_event_loop()
-    txaio.use_asyncio()
-    txaio.config.loop = loop
-    loop.run_until_complete(start_repl(loop))
-    loop.stop()
-
-
-if __name__ == '__main__':
     prefix = 'opendna.autobahn.repl'
     dest__class = {
         'connection_manager': f'{prefix}.connections.ConnectionManager',
@@ -135,4 +127,12 @@ if __name__ == '__main__':
         for key, value in vars(args).items()
         if key in dest__class or key in {'history_file', 'config_file'}
     })
+    loop = asyncio.get_event_loop()
+    txaio.use_asyncio()
+    txaio.config.loop = loop
+    loop.run_until_complete(start_repl(loop))
+    loop.stop()
+
+
+if __name__ == '__main__':
     main()
