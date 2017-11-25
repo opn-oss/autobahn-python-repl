@@ -32,7 +32,8 @@ from opendna.autobahn.repl.abc import (
     AbstractSession,
     AbstractConnection
 )
-from opendna.autobahn.repl.mixins import ManagesNames, HasName, HasFuture
+from opendna.autobahn.repl.mixins import ManagesNames, HasName, HasFuture, \
+    ManagesNamesProxy
 from opendna.autobahn.repl.utils import get_class
 
 __author__ = 'Adam Jorgensen <adam.jorgensen.za@gmail.com>'
@@ -59,12 +60,16 @@ class Session(HasFuture, HasName, AbstractSession):
         self.__init_has_future__(connection.manager.loop.create_future())
         call_manager_class = get_class(environ['call_manager'])
         self._call_manager = call_manager_class(self)
+        self._call_manager_proxy = ManagesNamesProxy(self._call_manager)
         registration_manager_class = get_class(environ['registration_manager'])
         self._register_manager = registration_manager_class(self)
+        self._register_manager_proxy = ManagesNamesProxy(self._register_manager)
         publisher_manager_class = get_class(environ['publisher_manager'])
         self._publisher_manager = publisher_manager_class(self)
+        self._publisher_manager_proxy = ManagesNamesProxy(self._publisher_manager)
         subscription_manager_class = get_class(environ['subscription_manager'])
         self._subscribe_manager = subscription_manager_class(self)
+        self._subscribe_manager_proxy = ManagesNamesProxy(self._subscribe_manager)
         application_runner_class = get_class(environ['application_runner'])
         runner = application_runner_class(
             connection.uri, connection.realm, connection.extra,
@@ -86,6 +91,22 @@ class Session(HasFuture, HasName, AbstractSession):
             self, self._future, config
         )
         return self._application_session
+
+    @property
+    def calls(self) -> ManagesNamesProxy:
+        return self._call_manager_proxy
+
+    @property
+    def registrations(self) -> ManagesNamesProxy:
+        return self._register_manager_proxy
+
+    @property
+    def publishers(self):
+        return self._publisher_manager_proxy
+
+    @property
+    def subscriptions(self) -> ManagesNamesProxy:
+        return self._subscribe_manager_proxy
 
     @property
     def call(self):

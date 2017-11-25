@@ -33,7 +33,8 @@ from opendna.autobahn.repl.abc import (
     AbstractConnectionManager,
     AbstractSession
 )
-from opendna.autobahn.repl.mixins import ManagesNames, HasLoop, HasName
+from opendna.autobahn.repl.mixins import ManagesNames, HasLoop, HasName, \
+    ManagesNamesProxy
 from opendna.autobahn.repl.utils import get_class
 
 __author__ = 'Adam Jorgensen <adam.jorgensen.za@gmail.com>'
@@ -55,6 +56,11 @@ class Connection(HasName, ManagesNames, AbstractConnection):
         )
         self.__init_has_name__(manager)
         self.__init_manages_names__()
+        self._sessions_proxy = ManagesNamesProxy(self)
+
+    @property
+    def sessions(self) -> ManagesNamesProxy:
+        return self._sessions_proxy
 
     def name_for(self, item):
         session_class = get_class(environ['session'])
@@ -89,6 +95,22 @@ class Connection(HasName, ManagesNames, AbstractConnection):
         self._items__names[session_id] = name
         self._names__items[name] = session_id
         return session
+
+    def __call__(self,
+                 authmethods: Union[str, List[str]]= 'anonymous',
+                 authid: str=None,
+                 authrole: str=None,
+                 authextra: dict=None,
+                 resumable: bool=None,
+                 resume_session: int=None,
+                 resume_token: str=None,
+                 *,
+                 name: str=None,
+                 **session_kwargs):
+        return self.session(
+            authmethods, authid, authrole, authextra, resumable, resume_session,
+            resume_token, name=name, **session_kwargs
+        )
 
 
 class ConnectionManager(ManagesNames, HasLoop, AbstractConnectionManager):

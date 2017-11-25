@@ -40,7 +40,7 @@ from opendna.autobahn.repl.abc import (
     AbstractSubscriptionManager
 )
 from opendna.autobahn.repl.mixins import ManagesNames, HasSession, HasName, \
-    HasFuture
+    HasFuture, ManagesNamesProxy
 from opendna.autobahn.repl.utils import Keep, get_class
 
 __author__ = 'Adam Jorgensen <adam.jorgensen.za@gmail.com>'
@@ -132,6 +132,11 @@ class Publisher(HasName, ManagesNames, AbstractPublisher):
         )
         self.__init_has_name__(manager)
         self.__init_manages_names__()
+        self._proxy = ManagesNamesProxy(self)
+
+    @property
+    def publications(self) -> ManagesNamesProxy:
+        return self._proxy
 
     def name_for(self, item):
         publication_class = get_class(environ['publication'])
