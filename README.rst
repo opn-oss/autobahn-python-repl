@@ -12,10 +12,6 @@ Contents
 
    1. Starting the REPL
    2. Connections
-
-      1. ``connect_to``
-      2. ``connections``
-
    3. Sessions
    4. Calls and Invocations
    5. Registrations
@@ -83,21 +79,114 @@ the WAMP router, it is merely a storage container for connection related
 details that is used to create ``Session`` objects which represent actual
 connections to the WAMP router.
 
+``connect_to`` accepts the follows arguments:
+
+* ``uri``: Required. A WAMP router URI string
+* ``realm``: Optional. A WAMP realm string
+* ``extra``: Optional. A dictionary of data to be supplied to the WAMP
+  ``ApplicationSession``.``__init__`` method. Not useful unless you are
+  working with a custom ``ApplicationSessions`` class. See *Extending* for
+  more details on this.
+* ``serializer``: Optional. A list of WAMP serializers to use. Serializers must
+  implement ``autobahn.wamp.interfaces.ISerializer``
+* ``ssl``: Optional. Boolean or ``ssl.SSLContenxt`` instance. Can usually
+  be ignored unless you are planning to connect use TLS authentication for a
+  ``Session``
+* ``proxy``: Optional. A dictionary providing details for a proxy server. Must
+  have ``host`` and ``port`` keys
+* ``name``: Optional. A name for the connection
 
 Sessions
 ````````
 
+Once you have a ``Connection`` instance you can use it to open a WAMP session:
+
+``>>> session1 = my_router.session()``
+
+This will create a ``Session`` instance and assign it to ``session1``. It will
+also output some text like:
+
+``Generating anonymous session to MY_REALM@ws://HOST:PORT with name bKP5ajz0``
+
+You can access this session via its auto-generated name like so:
+
+``>>> my_router.sessions.bKP5ajz0``
+
+You can also use the array indexing method and can even omit usage of the ``sessions``
+attribute on the ``Connection`` instance if you so choose. ``session`` also
+accepts a *name* parameter that you can use to avoid using an auto-generated name.
+
+By default calling ``session`` will open an ``Anonymous`` session with the router.
+
+It is also possible to specify the authentication method or methods that will
+be used.
+
+``
+>>> session2 = my_router.session('ticket', authid='your_authid', ticket='YOUR_AUTHENTICATION_TICKET')
+Generating ticket session to MY_REALM@ws://HOST:PORT with name SOME_NAME
+>>> session3 = my_router.session(['ticket', 'anonymous'], authid='your_authid', ticket='YOUR_AUTHENTICATION_TICKET')
+Generating ['ticket', 'anonymous'] session to MY_REALM@ws://HOST:PORT with name bKP5ajz0
+``
+
+*session2* will use WAMP-Ticket authentication only while *session3* will try
+WAMP-Ticket first before falling back to WAMP-Anonymous.
+
+While WAMP provides a number a authentication methods, only four of are handled
+at the session level (as opposed to the transport level). Calling the ``session``
+method with a specific authentication may imply the use of certain additional
+parameters. These are detailed below:
+
+* WAMP-Anonymous: No parameters required. Note that ``authid`` will be ignored if it is supplied
+* WAMP-Ticket: ``authid`` and ``ticket`` parameters required
+* WAMP-CRA: ``authid`` and ``secret`` parameters required
+* WAMP-Cryptosign: ``authid`` and ``key`` parameters required. ``key`` needs to be an instance of ``autobahn.wamp.cryptosign.SigningKey``
+
+The ``Connection.session`` method accepts the following arguments:
+
+* ``authmethods``: Optional. String or list of strings. Valid authentication method
+  strings are: ``anonymous``, ``ticket``, ``wampcra``, ``cryptosign``, ``cookie`` and ``tls``
+* ``authid``: String. Optional for WAMP-Anonymous authentication, required for all other methods
+* ``authrole``: String. Optional. Requested role
+* ``authextra``: Dictionary. Optional. Data to be passed along to the authenticator. Useful
+  for providing additional data to a dynamic authenticator
+* ``resumable``: Boolean. Optional. Should the session be resumed later if it disconnects
+* ``resume_session``: Integer. Optional. ID of Session to resume
+* ``resume_token``: String. Optional. Token for resuming session specified by ``resume_session``
+
+Calls and Invocations
+`````````````````````
+TBD
+
+Registrations
+`````````````
+TBD
+
+Publishers and Publications
+```````````````````````````
+TBD
+
+Subscriptions
+`````````````
+TBD
+
 
 Extending
 ---------
-
+TBD
 
 Roadmap
 -------
 
+* Improved UI with custom panes/tabs/views for examining Calls, Invocations,
+  Publishers, Publications, Registrations and Subscriptions
+* Support usage in other REPLs
+
 
 Credits
 -------
-PtPython for providing the secret REPL sauce
-Jedi for providing PtPython with the secret code completion sauce
-PromptToolkit for providing PtPython with the prompt secret sauce
+
+* Autobahn-Python for providing the secret WAMP sauce
+* PtPython for providing the secret REPL sauce
+* Jedi for providing PtPython with the secret code completion sauce
+* PromptToolkit for providing PtPython with the prompt secret sauce
+
