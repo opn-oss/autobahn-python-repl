@@ -119,14 +119,12 @@ accepts a *name* parameter that you can use to avoid using an auto-generated nam
 By default calling ``session`` will open an ``Anonymous`` session with the router.
 
 It is also possible to specify the authentication method or methods that will
-be used.
+be used::
 
-``
->>> session2 = my_router.session('ticket', authid='your_authid', ticket='YOUR_AUTHENTICATION_TICKET')
-Generating ticket session to MY_REALM@ws://HOST:PORT with name SOME_NAME
->>> session3 = my_router.session(['ticket', 'anonymous'], authid='your_authid', ticket='YOUR_AUTHENTICATION_TICKET')
-Generating ['ticket', 'anonymous'] session to MY_REALM@ws://HOST:PORT with name bKP5ajz0
-``
+  >>> session2 = my_router.session('ticket', authid='your_authid', ticket='YOUR_AUTHENTICATION_TICKET')
+  Generating ticket session to MY_REALM@ws://HOST:PORT with name SOME_NAME
+  >>> session3 = my_router.session(['ticket', 'anonymous'], authid='your_authid', ticket='YOUR_AUTHENTICATION_TICKET')
+  Generating ['ticket', 'anonymous'] session to MY_REALM@ws://HOST:PORT with name bKP5ajz0
 
 *session2* will use WAMP-Ticket authentication only while *session3* will try
 WAMP-Ticket first before falling back to WAMP-Anonymous.
