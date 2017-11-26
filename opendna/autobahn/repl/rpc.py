@@ -60,6 +60,7 @@ class Invocation(HasName, HasFuture, AbstractInvocation):
         super(Invocation, self).__init__(call=call, args=args, kwargs=kwargs)
         self.__init_has_name__(call)
         self.__init_has_future__()
+        self._progress = []
 
         def invoke(future: asyncio.Future):
             loop = call.manager.session.connection.manager.loop
@@ -71,9 +72,13 @@ class Invocation(HasName, HasFuture, AbstractInvocation):
         # TODO: Fix this type confusion
         call.manager.session.future.add_done_callback(invoke)
 
+    @property
+    def progress(self) -> list:
+        return self._progress
+
     def _default_on_progress(self, value):
         print(f'Invocation of {self._call.procedure} with name {self.name} has progress')
-        super()._default_on_progress(value)
+        self._progress.append(value)
         if callable(self._call.on_progress):
             self._call.on_progress(value)
 
@@ -82,7 +87,7 @@ class Invocation(HasName, HasFuture, AbstractInvocation):
         try:
             options = CallOptions(
                 on_progress=self._default_on_progress,
-                timeout=self._call.timeout
+                **self._call.call_options_kwargs
             )
             session = self._call.manager.session.application_session
             print(f'Invocation of {procedure} with name {self.name} starting')
@@ -115,13 +120,17 @@ class Invocation(HasName, HasFuture, AbstractInvocation):
 
 
 class Call(ManagesNames, AbstractCall):
-    def __init__(self, manager: AbstractCallManager,
-                 procedure: str, on_progress: Callable=None,
-                 timeout: Union[int, float, None]=None):
+    def __init__(self,
+                 manager: AbstractCallManager,
+                 procedure: str,
+                 on_progress: Callable=None,
+                 call_options_kwargs: dict=None):
         self.__init_manages_names__()
         super().__init__(
-            manager=manager, procedure=procedure, on_progress=on_progress,
-            timeout=timeout
+            manager=manager,
+            procedure=procedure,
+            on_progress=on_progress,
+            call_options_kwargs=call_options_kwargs
         )
         self._proxy = ManagesNamesProxy(self)
 
@@ -160,8 +169,9 @@ class CallManager(HasSession, ManagesNames, AbstractCallManager):
     def __call__(self,
                  procedure: str,
                  on_progress: Callable=None,
-                 timeout: Union[int, float]=None, *,
-                 name: str=None) -> AbstractCall:
+                 *,
+                 name: str=None,
+                 **call_options_kwargs) -> AbstractCall:
         """
         Generates a Callable which can be called to initiate an asynchronous
         request to the WAMP router this Session is connected to
@@ -177,8 +187,10 @@ class CallManager(HasSession, ManagesNames, AbstractCallManager):
         print(f'Generating call to {procedure} with name {name}')
         call_class = get_class(environ['call'])
         call = call_class(
-            manager=self, procedure=procedure, on_progress=on_progress,
-            timeout=timeout
+            manager=self,
+            procedure=procedure,
+            on_progress=on_progress,
+            call_options_kwargs=call_options_kwargs
         )
         call_id = id(call)
         self._items[call_id] = call

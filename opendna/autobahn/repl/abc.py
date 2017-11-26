@@ -202,14 +202,16 @@ class AbstractCallManager(object):
 
 
 class AbstractCall(object):
-    def __init__(self, manager: AbstractCallManager,
-                 procedure: str, on_progress: Callable=None,
-                 timeout: Union[int, float, None]=None):
+    def __init__(self,
+                 manager: AbstractCallManager,
+                 procedure: str,
+                 on_progress: Callable=None,
+                 call_options_kwargs: dict=None):
         assert isinstance(manager, AbstractCallManager)
         self._manager = manager
         self._procedure = procedure
         self._on_progress = on_progress
-        self._timeout = timeout
+        self._call_options_kwargs = call_options_kwargs
 
     @property
     def manager(self) -> AbstractCallManager:
@@ -224,8 +226,8 @@ class AbstractCall(object):
         return self._on_progress
 
     @property
-    def timeout(self) -> Union[int, float, None]:
-        return self._timeout
+    def call_options_kwargs(self) -> Optional[dict]:
+        return self._call_options_kwargs
 
     def __call__(self, *args, **kwargs) -> 'AbstractInvocation':
         raise NotImplementedError
@@ -238,12 +240,13 @@ class AbstractCall(object):
 
 
 class AbstractInvocation(object):
-    def __init__(self, call: 'AbstractCall', args: Iterable,
+    def __init__(self,
+                 call: 'AbstractCall',
+                 args: Iterable,
                  kwargs: Dict[str, Any]):
         self._call = call
         self._args = args
         self._kwargs = kwargs
-        self._progress = []
         self._result = None
         self._exception = None
 
@@ -260,7 +263,7 @@ class AbstractInvocation(object):
         return self._exception
 
     def _default_on_progress(self, value):
-        self._progress.append(value)
+        raise NotImplementedError
 
     async def _invoke(self):
         raise NotImplementedError
@@ -285,8 +288,11 @@ class AbstractRegistrationManager(object):
 
 
 class AbstractRegistration(object):
-    def __init__(self, manager: AbstractRegistrationManager, procedure: str,
-                 endpoint: Callable=None, prefix: str=None,
+    def __init__(self,
+                 manager: AbstractRegistrationManager,
+                 procedure: str,
+                 endpoint: Callable=None,
+                 prefix: str=None,
                  register_options_kwargs: dict=None):
         assert isinstance(manager, AbstractRegistrationManager)
         self._manager = manager
@@ -360,27 +366,11 @@ class AbstractPublisher(object):
     def __init__(self,
                  manager: AbstractPublisherManager,
                  topic: str,
-                 acknowledge: bool=None,
-                 exclude_me: bool=None,
-                 exclude: Union[int, List[int]]=None,
-                 exclude_authid: Union[str, List[str]]=None,
-                 exclude_authrole: Union[str, List[str]]=None,
-                 eligible: Union[int, List[int]]=None,
-                 eligible_authid: Union[str, List[str]]=None,
-                 eligible_authrole: Union[str, List[str]]=None,
-                 retain: bool=None):
+                 publish_options_kwargs: dict=None):
         assert isinstance(manager, AbstractPublisherManager)
         self._manager = manager
         self._topic = topic
-        self._acknowledge = acknowledge
-        self._exclude_me = exclude_me
-        self._exclude = exclude
-        self._exclude_authid = exclude_authid
-        self._exclude_authrole = exclude_authrole
-        self._eligible = eligible
-        self._eligible_authid = eligible_authid
-        self._eligible_authrole = eligible_authrole
-        self._retain = retain
+        self._publish_options_kwargs = publish_options_kwargs
 
     @property
     def manager(self) -> AbstractPublisherManager:
@@ -391,40 +381,8 @@ class AbstractPublisher(object):
         return self._topic
 
     @property
-    def acknowledge(self):
-        return self._acknowledge
-
-    @property
-    def exclude_me(self) -> bool:
-        return self._exclude_me
-
-    @property
-    def exclude(self) -> Union[int, List[int]]:
-        return self._exclude
-
-    @property
-    def exclude_authid(self) -> Union[str, List[str]]:
-        return self._exclude_authid
-
-    @property
-    def exclude_authrole(self) -> Union[str, List[str]]:
-        return self._exclude_authrole
-
-    @property
-    def eligible(self) -> Union[int, List[int]]:
-        return self._eligible
-
-    @property
-    def eligible_authid(self) -> Union[str, List[str]]:
-        return self._eligible_authid
-
-    @property
-    def eligible_authrole(self) -> Union[str, List[str]]:
-        return self._eligible_authrole
-
-    @property
-    def retain(self) -> bool:
-        return self._retain
+    def publish_options_kwargs(self) -> Optional[dict]:
+        return self._publish_options_kwargs
 
     def __call__(self, *args, **kwargs) -> 'AbstractPublication':
         raise NotImplementedError
@@ -437,8 +395,10 @@ class AbstractPublisher(object):
 
 
 class AbstractPublication(object):
-    def __init__(self, publisher: AbstractPublisher,
-                 args: Iterable, kwargs: Dict[str, Any]):
+    def __init__(self,
+                 publisher: AbstractPublisher,
+                 args: Iterable,
+                 kwargs: Dict[str, Any]):
         assert isinstance(publisher, AbstractPublisher)
         self._publisher = publisher
         self._args = args
@@ -477,8 +437,11 @@ class AbstractSubscriptionManager(object):
 
 
 class AbstractSubscription(object):
-    def __init__(self, manager: AbstractSubscriptionManager, topic: str,
-                 handler: Callable=None, subscribe_options_kwargs: dict=None):
+    def __init__(self,
+                 manager: AbstractSubscriptionManager,
+                 topic: str,
+                 handler: Callable=None,
+                 subscribe_options_kwargs: dict=None):
         self._manager = manager
         self._topic = topic
         self._handler = handler

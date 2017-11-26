@@ -68,17 +68,7 @@ class Publication(HasName, HasFuture, AbstractPublication):
     async def _invoke(self):
         topic = self._publisher.topic
         try:
-            options = PublishOptions(
-                acknowledge=self._publisher.acknowledge,
-                exclude_me=self._publisher.exclude_me,
-                exclude=self._publisher.exclude,
-                exclude_authid=self._publisher.exclude_authid,
-                exclude_authrole=self._publisher.exclude_authrole,
-                eligible=self._publisher.eligible,
-                eligible_authid=self._publisher.eligible_authid,
-                eligible_authrole=self._publisher.eligible_authrole,
-                retain=self._publisher.retain
-            )
+            options = PublishOptions(**self._publisher.publish_options_kwargs)
             session = self._publisher.manager.session.application_session
             print(f'Publication to {topic} with name {self.name} starting')
             self._result = session.publish(
@@ -114,21 +104,11 @@ class Publication(HasName, HasFuture, AbstractPublication):
 class Publisher(HasName, ManagesNames, AbstractPublisher):
     def __init__(self, manager: Union[ManagesNames, AbstractPublisherManager],
                  topic: str,
-                 acknowledge: bool=None,
-                 exclude_me: bool=None,
-                 exclude: Union[int, List[int]]=None,
-                 exclude_authid: Union[str, List[str]]=None,
-                 exclude_authrole: Union[str, List[str]]=None,
-                 eligible: Union[int, List[int]]=None,
-                 eligible_authid: Union[str, List[str]]=None,
-                 eligible_authrole: Union[str, List[str]]=None,
-                 retain: bool=None):
+                 publish_options_kwargs: dict=None):
         super().__init__(
-            manager=manager, topic=topic, acknowledge=acknowledge,
-            exclude_me=exclude_me, exclude=exclude,
-            exclude_authid=exclude_authid, exclude_authrole=exclude_authrole,
-            eligible=eligible, eligible_authid=eligible_authid,
-            eligible_authrole=eligible_authrole, retain=retain
+            manager=manager,
+            topic=topic,
+            publish_options_kwargs=publish_options_kwargs
         )
         self.__init_has_name__(manager)
         self.__init_manages_names__()
@@ -168,24 +148,15 @@ class PublisherManager(ManagesNames, HasSession, AbstractPublisherManager):
     @ManagesNames.with_name
     def __call__(self,
                  topic: str,
-                 acknowledge: bool=None,
-                 exclude_me: bool=None,
-                 exclude: Union[int, List[int]]=None,
-                 exclude_authid: Union[str, List[str]]=None,
-                 exclude_authrole: Union[str, List[str]]=None,
-                 eligible: Union[int, List[int]]=None,
-                 eligible_authid: Union[str, List[str]]=None,
-                 eligible_authrole: Union[str, List[str]]=None,
-                 retain: bool=None, *,
-                 name: str=None) -> AbstractPublisher:
+                 *,
+                 name: str=None,
+                 **publish_options_kwargs) -> AbstractPublisher:
         print(f'Generating publish to {topic} with name {name}')
-        publisher_class = get_class(environ['publisher'])
+        publisher_class: AbstractPublisher = get_class(environ['publisher'])
         publisher = publisher_class(
-            manager=self, topic=topic, acknowledge=acknowledge,
-            exclude_me=exclude_me, exclude=exclude,
-            exclude_authid=exclude_authid, exclude_authrole=exclude_authrole,
-            eligible=eligible, eligible_authid=eligible_authid,
-            eligible_authrole=eligible_authrole, retain=retain
+            manager=self,
+            topic=topic,
+            publish_options_kwargs=publish_options_kwargs
         )
         publisher_id = id(publisher)
         self._items[publisher_id] = publisher
@@ -287,7 +258,8 @@ class SubscriptionManager(HasSession, ManagesNames, AbstractSubscriptionManager)
     def __call__(self,
                  topic: str,
                  handler: Callable=None,
-                 *, name: str=None,
+                 *,
+                 name: str=None,
                  **subscribe_options_kwargs) -> AbstractSubscription:
         print(f'Generating subscription for {topic} with name {name}')
         subscription_class = get_class(environ['subscription'])
