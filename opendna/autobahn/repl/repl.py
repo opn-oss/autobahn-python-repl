@@ -32,6 +32,7 @@ from opendna.common.decorators import with_uvloop_if_possible
 from pathlib import Path
 from ptpython.repl import embed, run_config, PythonRepl
 
+from opendna.autobahn.repl.mixins import ManagesNamesProxy
 from opendna.autobahn.repl.utils import get_class
 
 
@@ -84,7 +85,7 @@ def start_repl(loop: asyncio.AbstractEventLoop):
         locals={
             'connect': manager,
             'connect_to': manager,
-            'connections': manager,
+            'connections': ManagesNamesProxy(manager),
         },
         title='AutoBahn-Python REPL',
         return_asyncio_coroutine=True,
