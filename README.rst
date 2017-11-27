@@ -7,24 +7,24 @@ to refer to the REPL application
 
 Contents
 --------
-1. Installation
-2. Usage
+1. `Installation`_
+2. `Usage`_
 
-   1. Starting the REPL
-   2. Connections
-   3. Sessions
-   4. Calls and Invocations
-   5. Registrations
-   6. Publishers and Publications
-   7. Subscriptions
+   1. `Starting the REPL`_
+   2. `Connections`_
+   3. `Sessions`_
+   4. `Calls and Invocations`_
+   5. `Registrations`_
+   6. `Publishers and Publications`_
+   7. `Subscriptions`_
 
-3. Extending
+3. `Extending`_
 
-   1. PtPython config module
-   2. REPL class substitution
+   1. `PtPython config module`_
+   2. `REPL class substitution`_
 
-5. Roadmap
-6. Credits
+5. `Roadmap`_
+6. `Credits`_
 
 
 Installation
@@ -251,6 +251,15 @@ TBD
 Extending
 ---------
 TBD
+
+PtPython config module
+~~~~~~~~~~~~~~~~~~~~~~
+TBD
+
+REPL class substitution
+~~~~~~~~~~~~~~~~~~~~~~~
+TBD
+
 
 Roadmap
 -------
