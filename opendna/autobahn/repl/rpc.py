@@ -216,6 +216,7 @@ class Registration(HasName, ManagesNames, HasFuture, AbstractRegistration):
         self.__init_manages_names__()
         self.__init_has_name__(manager)
         self.__init_has_future__()
+        self._proxy = ManagesNamesProxy(self)
 
         def invoke(future: asyncio.Future):
             loop = manager.session.connection.manager.loop
@@ -226,6 +227,10 @@ class Registration(HasName, ManagesNames, HasFuture, AbstractRegistration):
                 print(e)
         # TODO: Fix this type confusion
         manager.session.future.add_done_callback(invoke)
+
+    @property
+    def hits(self) -> ManagesNamesProxy:
+        return self._proxy
 
     @property
     def registration(self) -> Optional[IRegistration]:
