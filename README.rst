@@ -302,7 +302,7 @@ of the custom handler will be returned to the caller (the default handler will r
   >>> invocation.result
   True
 
- It is also possible to unregister an existing registration::
+It is also possible to unregister an existing registration::
 
   >>> my_registration.unregister()
   Deregistration of endpoint_uri with name Rx3mmt2e starting
