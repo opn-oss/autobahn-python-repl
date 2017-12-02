@@ -1,8 +1,7 @@
 OpenDNA Autobahn-Python REPL
 ============================
 A REPL environment for working with WAMP routers in an interactive fashion built
-using the Autobahn-Python library. Throughout this document the TLA APR is used
-to refer to the REPL application
+using the Autobahn-Python library.
 
 
 Contents
@@ -42,37 +41,34 @@ Usage
 Starting the REPL
 ~~~~~~~~~~~~~~~~~
 1. Run the ``autobahn_python_repl`` script installed by this package
-2. Run ``python -m opendna.autobahn.repl.rpl``
+2. Run ``python -m opendna.autobahn.repl.repl``
 
 Connections
 ```````````
-Once APR has started you will be presented with a standard PtPython prompt and
-environment. In order to begin connecting to a WAMP router enter:
+Once the REPL has started you will be presented with a standard PtPython prompt
+and environment. In order to begin connecting to a WAMP router enter::
 
-``>>> my_router = connect_to(uri='ws://HOST:PORT', realm='MY_REALM')``
-
-This will create a ``Connection`` instance, assign it to ``my_router`` and
-output some text like:
-
-``Generating connection to MY_REALM@ws://HOST:PORT with name g9jZlZeh``
+  >>> my_connection = connect_to(uri='ws://HOST:PORT', realm='MY_REALM')
+  Generating connection to MY_REALM@ws://HOST:PORT with name g9jZlZeh
 
 You will see that ``connect_to`` generated an internal name for the connection.
-You can access the connection via this internal name by entering:
+You can access the connection via this internal name by entering::
 
-``>>> connections.g9jZlZeh``
+  >>> connections.g9jZlZeh
+  <opendna.autobahn.repl.connections.Connection object at 0x6fc2901ab0f0>
 
 It is also possible to provide a custom internal name for the connection when
-you call ``connect_to`` as follows:
+you call ``connect_to`` as follows::
 
-``>>> connect_to(uri='ws://HOST:PORT', realm='MY_REALM', name='my_router')``
+  >>> connect_to(uri='ws://HOST:PORT', realm='MY_REALM', name='my_connection')
+  Generating connection to MY_REALM@ws://HOST:PORT with name my_connection
 
-We can then access the connection by entering:
+We can then access the connection by entering::
 
-``>>> connections.my_router``
-
-or
-
-``>>> connections['my_router']``
+  >>> connections.my_connection
+  <opendna.autobahn.repl.connections.Connection object at 0x2ac690dab0f0>
+  >>> connections['my_connection']
+  <opendna.autobahn.repl.connections.Connection object at 0x2ac690dab0f0>
 
 Note that the ``Connection`` object is not actually a concrete connection to
 the WAMP router, it is merely a storage container for connection related
@@ -98,35 +94,33 @@ connections to the WAMP router.
 
 Sessions
 ````````
-Once you have a ``Connection`` instance you can use it to open a WAMP session:
+Once you have a ``Connection`` instance you can use it to open a WAMP session::
 
-``>>> session1 = my_router.session()``
+  >>> my_session = my_connection.session()
+  Generating anonymous session to MY_REALM@ws://HOST:PORT with name bKP5ajz0
 
-This will create a ``Session`` instance and assign it to ``session1``. It will
-also output some text like:
+You can access this session via its auto-generated name like so::
 
-``Generating anonymous session to MY_REALM@ws://HOST:PORT with name bKP5ajz0``
+  >>> my_connection.sessions.bKP5ajz0
+  <opendna.autobahn.repl.sessions.Session object at 0x14c2b01a40fd>
+  >>> my_connection.sessions['bKP5ajz0']
+  <opendna.autobahn.repl.sessions.Session object at 0x14c2b01a40fd>
 
-You can access this session via its auto-generated name like so:
-
-``>>> my_router.sessions.bKP5ajz0``
-
-You can also use the array indexing method and can even omit usage of the ``sessions``
-attribute on the ``Connection`` instance if you so choose. ``session`` also
-accepts a *name* parameter that you can use to avoid using an auto-generated name.
+``session`` also accepts a *name* parameter that you can use to avoid using an
+auto-generated name.
 
 By default calling ``session`` will open an ``Anonymous`` session with the router.
 
 It is also possible to specify the authentication method or methods that will
 be used::
 
-  >>> session2 = my_router.session('ticket', authid='your_authid', ticket='YOUR_AUTHENTICATION_TICKET')
+  >>> ticket_session = my_connection.session('ticket', authid='your_authid', ticket='YOUR_AUTHENTICATION_TICKET')
   Generating ticket session to MY_REALM@ws://HOST:PORT with name SOME_NAME
-  >>> session3 = my_router.session(['ticket', 'anonymous'], authid='your_authid', ticket='YOUR_AUTHENTICATION_TICKET')
+  >>> mixed_session = my_connection.session(['ticket', 'anonymous'], authid='your_authid', ticket='YOUR_AUTHENTICATION_TICKET')
   Generating ['ticket', 'anonymous'] session to MY_REALM@ws://HOST:PORT with name SOME_OTHER_NAME
 
-*session2* will use WAMP-Ticket authentication only while *session3* will try
-WAMP-Ticket first before falling back to WAMP-Anonymous.
+*ticket_session* will use WAMP-Ticket authentication only while *mixed_session*
+will try WAMP-Ticket first before falling back to WAMP-Anonymous.
 
 While WAMP provides a number a authentication methods, only four of are handled
 at the session level (as opposed to the transport level). Calling the ``session``
@@ -152,35 +146,28 @@ The ``Connection.session`` method accepts the following arguments:
 
 Calls and Invocations
 `````````````````````
-Once you have a ``Session`` instance you can use it to create ``Call`` instance:
+Once you have a ``Session`` instance you can use it to create ``Call`` instance::
 
-``>>> my_call = session1.call('endpoint_uri')``
+  >>> my_call = my_session.call('endpoint_uri')
+  Generating a call to endpoint endpoint_uri with name i9BcEagW
 
-This will create a ``Call`` instance and assign it to ``my_call``. It will
-also output some text like:
+You can access this call by it's autogenerated name like so::
 
-``Generating a call to endpoint endpoint_uri with name i9BcEagW``
+  >>> my_session.calls.i9BcEagW
+  <opendna.autobahn.repl.rpc.Call object at 0xa452bd1a6f2>
+  >>> my_session.calls['i9BcEagW']
+  <opendna.autobahn.repl.rpc.Call object at 0xa452bd1a6f2>
 
-You can access this call by it's autogenerated name like so:
-
-``>>> session1.calls.i9BcEagW``
-
-You can also use the array indexing method and can also use both attribute
-and indexing to access it via the ``call`` method on the ``Session`` instance.
-You can also provide a a custom *name* parameter to bypass the use of an autogenerated
+``call`` also accepts a custom *name* parameter to bypass the use of an autogenerated
 name. Furthermore, the ``call`` method accepts any keyword-arguments you can
 supply to the `autobahn.wamp.types.CallOptions constructor`_.
 
 .. _autobahn.wamp.types.CallOptions constructor: https://autobahn.readthedocs.io/en/latest/reference/autobahn.wamp.html#autobahn.wamp.types.CallOptions
 
 A ``Call`` instance is itself callable and can be invoked in order to produce an
-``Invocation`` instance:
+``Invocation`` instance::
 
-``invocation1 = my_call(True, False, parm3=None, parm4={'something': 'or other'})``
-
-This will create an ``Invocation`` instance, assign it to ``inv1`` and schedule
-execution against the ``Session`` instance. The output will be something like::
-
+  >>> my_invocation = my_call(True, False, parm3=None, parm4={'something': 'or other'})
   Invoking endpoint_uri with name Wax3JdBx
   Invocation of endpoint_uri with name Wax3JdBx starting
   Invocation of endpoint_uri with name Wax3JdBx succeeded
@@ -188,12 +175,13 @@ execution against the ``Session`` instance. The output will be something like::
 Depending on how long it takes for the remote end-point to execute, the message
 indicating success or failure may not appear immediately. You will note that
 the ``Invocation`` also receives a auto-generated name which can be used to access
-it from the ``Call`` instance like so:
+it from the ``Call`` instance like so::
 
-``>>> my_call.invocations.Wax3JdBx``
+  >>> my_call.invocations.Wax3JdBx
+  <opendna.autobahn.repl.rpc.Invocation object at 0xd456bc1aef5>
+  >>> my_call.invocations['Wax3JdBx']
+  <opendna.autobahn.repl.rpc.Invocation object at 0xd456bc1aef5>
 
-As expected, array indexing can also be used and the ``.invocations`` component
-can be omitted.
 
 The ``Invocation`` instance exposes three important properties that can be
 used to access the results of the WAMP Call:
@@ -210,14 +198,14 @@ and affects the creation of the new ``Invocation`` as follows:
 
 * Positional arguments will replace the corresponding positional arguments from the parent ``Invocation``
   in the new ``Invocation`` unless the positional argument is a reference to the singleton object ``opendna.autobahn.repl.utils.Keep``
-  To illustrate this consider the following scenario::
+  To illustrate this consider the following input scenario::
 
-    my_call = session1.call('some_endpoint')
-    invocation1 = my_call(1,2,3)
-    invocation2 = invocation1(3, Keep, 1)
-    invocation3 = my_call(3,2,1)
+    >>>  my_call = session.call('some_endpoint')
+    >>>  invocation1 = my_call(1,2,3)
+    >>>  invocation2 = invocation1(3, Keep, 1)
+    >>>  invocation3 = my_call(3,2,1)
 
-  In this scenario ``invocation2`` and ``invocation3`` are identical
+ In this scenario ``invocation2`` and ``invocation3`` are identical
 
 * If the number of positional arguments supplied is less than was supplied to the parent ``Invocation`` then the
   missing positional arguments will be substituted in from the parent ``Invocation`` as if ``Keep`` had been used in their
@@ -228,10 +216,10 @@ and affects the creation of the new ``Invocation`` as follows:
 
 * Any keyword arguments will replace the corresponding keyword arguments from the parent ``Invocation``::
 
-    my_call = session1.call('some_endpoint')
-    invocation1 = my_call(x=True, y=False)
-    invocation2 = invocation1(y=True)
-    invocation3 = my_call(x=True, y=True)
+    >>> my_call = session.call('some_endpoint')
+    >>> invocation1 = my_call(x=True, y=False)
+    >>> invocation2 = invocation1(y=True)
+    >>> invocation3 = my_call(x=True, y=True)
 
   In this scenario ``invocation2`` and ``invocation3`` are identical
 
@@ -239,16 +227,16 @@ Registrations
 `````````````
 Once you have a ``Session`` instance you can use it to create ``Registration`` instance::
 
-  >>> my_registration = session1.register('endpoint_uri')
+  >>> my_registration = session.register('endpoint_uri')
   Generating registration for endpoint_uri with name Rx3mmt2e
   Registration of endpoint_uri with name Rx3mmt2e starting
   Registration of endpoint_uri with name Rx3mmt2e succeeded
 
 You can access this registration by it's autogenerated name like so::
 
-  >>> session1.registrations.Rx3mmt2e
+  >>> session.registrations.Rx3mmt2e
   <opendna.autobahn.repl.rpc.Registration object at 0x7fc89015b0f0>
-  >>> session1.registrations['Rx3mmt2e']
+  >>> session.registrations['Rx3mmt2e']
   <opendna.autobahn.repl.rpc.Registration object at 0x7fc89015b0f0>
 
 You can also use the array indexing method and can also use both attribute
@@ -288,11 +276,11 @@ of the custom handler will be returned to the caller (the default handler will r
           await asyncio.sleep(5)
           print(args, kwargs)
           return True
-  >>> my_registration = session1.register('endpoint_uri', test)
+  >>> my_registration = session.register('endpoint_uri', test)
   Generating registration for endpoint_uri with name Rx3mmt2e
   Registration of endpoint_uri with name Rx3mmt2e starting
   Registration of endpoint_uri with name Rx3mmt2e succeeded
-  >>> invocation = session1.call('endpoint_uri')(1,2,3,False,True,{},x=None)
+  >>> invocation = session.call('endpoint_uri')(1,2,3,False,True,{},x=None)
   Generating call to endpoint_uri with name shejtoeU
   Invoking endpoint_uri with name dgSHC77i
   Invocation of endpoint_uri with name dgSHC77i starting
