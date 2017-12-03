@@ -92,6 +92,12 @@ class Publication(HasName, HasFuture, AbstractPublication):
         :return:
         """
         args = deepcopy(self._args)
+        new_args_len = len(new_args)
+        args_len = len(args)
+        if new_args_len < args_len:
+            new_args = list(new_args) + args[new_args_len:]
+        elif new_args_len > args_len:
+            new_args = new_args[:args_len]
         args = [
             arg if new_arg == Keep else new_arg
             for arg, new_arg in zip(args, new_args)
