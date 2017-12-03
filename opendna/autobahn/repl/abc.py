@@ -331,10 +331,10 @@ class AbstractRegistration(object):
     def exception(self) -> Optional[Exception]:
         return self._exception
 
-    def unregister(self):
+    def deregister(self):
         raise NotImplementedError
 
-    async def _unregister(self):
+    async def _deregister(self):
         raise NotImplementedError
 
     async def _register(self):

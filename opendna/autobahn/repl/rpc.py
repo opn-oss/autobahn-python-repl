@@ -236,11 +236,11 @@ class Registration(HasName, ManagesNames, HasFuture, AbstractRegistration):
     def registration(self) -> Optional[IRegistration]:
         return self._registration
 
-    def unregister(self):
+    def deregister(self):
         if self._registration is None:
             raise Exception(f'{self._procedure} is not registered yet')
         loop = self._manager.session.connection.manager.loop
-        asyncio.ensure_future(self._unregister(), loop=loop)
+        asyncio.ensure_future(self._deregister(), loop=loop)
 
     def __call__(self,
                  procedure: str=None,
@@ -256,7 +256,7 @@ class Registration(HasName, ManagesNames, HasFuture, AbstractRegistration):
             **register_options_kwargs
         )
 
-    async def _unregister(self):
+    async def _deregister(self):
         try:
             print(f'Deregistration of {self._procedure} with name {self.name} starting')
             await self._registration.unregister()
