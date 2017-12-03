@@ -72,7 +72,7 @@ class Publication(HasName, HasFuture, AbstractPublication):
             session = self._publisher.manager.session.application_session
             print(f'Publication to {topic} with name {self.name} starting')
             self._result = session.publish(
-                topic=topic,
+                topic,
                 *self._args,
                 options=options,
                 **self._kwargs
@@ -157,7 +157,7 @@ class PublisherManager(ManagesNames, HasSession, AbstractPublisherManager):
                  *,
                  name: str=None,
                  **publish_options_kwargs) -> AbstractPublisher:
-        print(f'Generating publish to {topic} with name {name}')
+        print(f'Generating publisher for {topic} with name {name}')
         publisher_class: AbstractPublisher = get_class(environ['publisher'])
         publisher = publisher_class(
             manager=self,
@@ -181,6 +181,7 @@ class Subscription(HasName, ManagesNames, HasFuture, AbstractSubscription):
         self.__init_manages_names__()
         self.__init_has_name__(manager)
         self.__init_has_future__()
+        self._proxy = ManagesNamesProxy(self)
 
         def invoke(future: asyncio.Future):
             loop = manager.session.connection.manager.loop
@@ -191,6 +192,10 @@ class Subscription(HasName, ManagesNames, HasFuture, AbstractSubscription):
                 print(e)
         # TODO: Fix this type confusion
         manager.session.future.add_done_callback(invoke)
+
+    @property
+    def events(self) -> ManagesNamesProxy:
+        return self._proxy
 
     async def _unsubscribe(self):
         try:
@@ -231,7 +236,7 @@ class Subscription(HasName, ManagesNames, HasFuture, AbstractSubscription):
             return self._handler(*args, **kwargs)
 
     def unsubscribe(self):
-        if self._registration is None:
+        if self._subscription is None:
             raise Exception(f'{self._topic} is not subscribed yet')
         loop = self._manager.session.connection.manager.loop
         asyncio.ensure_future(self._unsubscribe(), loop=loop)
