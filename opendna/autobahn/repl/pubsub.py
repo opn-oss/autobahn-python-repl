@@ -199,11 +199,11 @@ class Subscription(HasName, ManagesNames, HasFuture, AbstractSubscription):
 
     async def _unsubscribe(self):
         try:
-            print(f'Unsubscription of {self._topic} with name {self.name} starting')
+            print(f'Unsubscription from {self._topic} with name {self.name} starting')
             await self._subscription.unsubscribe()
-            print(f'Unsubscription of {self._topic} with name {self.name} succeeded')
+            print(f'Unsubscription from {self._topic} with name {self.name} succeeded')
         except Exception as e:
-            print(f'Unsubscription of {self._topic} with name {self.name} failed')
+            print(f'Unsubscription from {self._topic} with name {self.name} failed')
             self._exception = e
 
     async def _subscribe(self):
