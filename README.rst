@@ -111,7 +111,7 @@ You can access this session via its auto-generated name like so::
 ``session`` also accepts a *name* parameter that you can use to avoid using an
 auto-generated name.
 
-By default calling ``session`` will open an ``Anonymous`` session with the router.
+By default calling ``session`` will open a *WAMP-Anonymous* session with the router.
 
 It is also possible to specify the authentication method or methods that will
 be used::
@@ -126,7 +126,7 @@ will try WAMP-Ticket first before falling back to WAMP-Anonymous.
 
 While WAMP provides a number a authentication methods, only four of are handled
 at the session level (as opposed to the transport level). Calling the ``session``
-method with a specific authentication may imply the use of certain additional
+method with a specific authentication method may imply the use of certain additional
 parameters. These are detailed below:
 
 * WAMP-Anonymous: No parameters required. Note that ``authid`` will be ignored if it is supplied
@@ -148,7 +148,7 @@ The ``Connection.session`` method accepts the following arguments:
 
 Calls and Invocations
 `````````````````````
-In order to perform WAMP RPC calls you need to create ``Call`` instance. This is
+In order to perform WAMP RPC calls you need to create a ``Call`` instance. This is
 done using a ``Session`` instance::
 
   >>> my_call = my_session.call('endpoint_uri')
@@ -210,7 +210,7 @@ and affects the creation of the new ``Invocation`` as follows:
     >>>  invocation2 = invocation1(3, Keep, 1)
     >>>  invocation3 = my_call(3,2,1)
 
- In this scenario ``invocation2`` and ``invocation3`` are identical
+  In this scenario ``invocation2`` and ``invocation3`` are identical
 
 * If the number of positional arguments supplied is less than was supplied to the parent ``Invocation`` then the
   missing positional arguments will be substituted in from the parent ``Invocation`` as if ``Keep`` had been used in their
@@ -275,8 +275,8 @@ after the hit is stored by the ``Registration`` instance. Additionally, the resu
 of the custom handler will be returned to the caller (the default handler will return
 ``None`` in the event that no custom handler is supplied)::
 
+  >>> import asyncio
   >>> async def test(*args, **kwargs):
-          import asyncio
           await asyncio.sleep(5)
           print(args, kwargs)
           return True
@@ -294,7 +294,7 @@ of the custom handler will be returned to the caller (the default handler will r
   >>> invocation.result
   True
 
-It is also possible to unregister an existing registration::
+It is also possible to deregister an existing registration::
 
   >>> my_registration.deregister()
   Deregistration of endpoint_uri with name Rx3mmt2e starting
@@ -360,7 +360,7 @@ calling a ``Publication`` is quite specific and affects the creation of the new
     >>>  publication2 = publication1(3, Keep, 1)
     >>>  publication3 = my_publisher(3,2,1)
 
- In this scenario ``publication2`` and ``publication3`` are identical
+  In this scenario ``publication2`` and ``publication3`` are identical
 
 * If the number of positional arguments supplied is less than was supplied to the parent ``Publication`` then the
   missing positional arguments will be substituted in from the parent ``Publication`` as if ``Keep`` had been used in their
