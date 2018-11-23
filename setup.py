@@ -51,7 +51,7 @@ setup(
     install_requires=[
         'autobahn>=17.3.1',
         'opn-oss-py-common>=17.8.4',
-        'ptpython',
+        'ptpython<2.0.1',
         'decorator'
     ],
     entry_points={
